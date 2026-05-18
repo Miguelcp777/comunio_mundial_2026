@@ -40,7 +40,7 @@ export default function HomePage() {
         <div className="relative w-full" style={{ maxWidth: 860 }}>
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-10 text-xs text-white/50"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-6 text-xs text-white/50"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse inline-block" />
@@ -65,7 +65,7 @@ export default function HomePage() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-8">
             <Link href="/login" className="btn-primary text-base !py-3.5 !px-10 w-full sm:w-auto">
               🎯 Empezar a Predecir
             </Link>
@@ -99,7 +99,7 @@ export default function HomePage() {
         style={{ paddingTop: "4.5rem", paddingBottom: "4.5rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="w-full" style={{ maxWidth: 1100 }}>
-          <div className="text-center mb-14">
+          <div className="text-center mb-8">
             <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold mb-3">
               ¿Cómo <span className="text-gold-gradient">funciona</span>?
             </h2>
@@ -135,7 +135,7 @@ export default function HomePage() {
         style={{ paddingTop: "4.5rem", paddingBottom: "4.5rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="w-full" style={{ maxWidth: 1100 }}>
-          <div className="text-center mb-14">
+          <div className="text-center mb-8">
             <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold mb-3">
               Sistema de <span className="text-gold-gradient">Puntos</span>
             </h2>
@@ -189,7 +189,7 @@ export default function HomePage() {
             </div>
           </div>
 
-          <div className="mt-14 text-center">
+          <div className="mt-8 text-center">
             <Link href="/login" className="btn-primary text-base !py-4 !px-12">
               🎯 Empezar ahora — es gratis
             </Link>

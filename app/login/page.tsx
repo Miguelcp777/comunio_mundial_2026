@@ -48,8 +48,8 @@ export default function LoginPage() {
         {/* Card */}
         <div className="glass-strong p-8 glow-gold">
           {/* Header */}
-          <div className="text-center mb-8">
-            <span className="text-4xl mb-4 block">🏆</span>
+          <div className="text-center mb-6">
+            <span className="text-4xl mb-3 block">🏆</span>
             <h1 className="font-[var(--font-heading)] text-2xl font-bold text-gold-gradient">
               {isSignUp ? "Crear Cuenta" : "Iniciar Sesión"}
             </h1>

@@ -178,7 +178,7 @@ export default function DashboardPage() {
 
       {/* Group filter — only for group stage */}
       {activeStage === "group" && (
-        <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1 mb-5 mt-3">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1 mb-3 mt-2">
           <button
             onClick={() => setActiveGroup(null)}
             className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
@@ -208,7 +208,7 @@ export default function DashboardPage() {
       )}
 
       {/* Divider */}
-      <div className="mb-5 border-t border-white/5" />
+      <div className="mb-4 border-t border-white/5" />
 
       {/* Matches grid — 1 col on mobile/tablet, 2 cols on xl */}
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
