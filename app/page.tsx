@@ -95,7 +95,7 @@ export default function HomePage() {
               fontSize: 15, textDecoration: "none",
               fontFamily: "var(--font-heading)", letterSpacing: "0.01em",
             }}>
-              🎯 Empezar gratis
+              🎯 Empezar
             </Link>
             <a href="#como-funciona" style={{
               background: "rgba(255,255,255,0.05)",
@@ -274,7 +274,7 @@ export default function HomePage() {
               fontFamily: "var(--font-heading)", letterSpacing: "0.01em",
               display: "inline-block",
             }}>
-              🎯 Empezar ahora — es gratis
+              🎯 Empezar ahora
             </Link>
           </div>
         </div>
