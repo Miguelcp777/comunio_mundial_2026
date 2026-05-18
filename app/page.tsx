@@ -27,7 +27,7 @@ export default function HomePage() {
       {/* ── Hero — full viewport height ─────────────────────────── */}
       <section
         className="relative w-full flex flex-col items-center justify-center text-center px-8 shrink-0"
-        style={{ minHeight: "calc(100vh - 56px)", paddingTop: "5rem", paddingBottom: "5rem" }}
+        style={{ minHeight: "calc(100vh - 56px)", paddingTop: "4rem", paddingBottom: "4rem" }}
       >
         {/* Background glows */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
@@ -37,7 +37,7 @@ export default function HomePage() {
             style={{ width: 600, height: 600, top: "30%", right: "25%", transform: "translate(50%,-50%)", background: "rgba(109,40,217,0.07)" }} />
         </div>
 
-        <div className="relative w-full" style={{ maxWidth: 680 }}>
+        <div className="relative w-full" style={{ maxWidth: 860 }}>
           {/* Badge */}
           <div
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-10 text-xs text-white/50"
@@ -47,17 +47,17 @@ export default function HomePage() {
             Abierto para predicciones
           </div>
 
-          {/* Title */}
+          {/* Title — clamp capped at 6rem so MUNDIAL always fits */}
           <h1
             className="font-[var(--font-heading)] font-black leading-[0.88] tracking-tight mb-8"
-            style={{ fontSize: "clamp(4.5rem, 13vw, 10rem)" }}
+            style={{ fontSize: "clamp(2.8rem, 8vw, 6rem)" }}
           >
             <span className="text-gold-gradient block">MUNDIAL</span>
             <span className="text-white block">2026</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-lg text-white/50 mb-10 leading-relaxed mx-auto" style={{ maxWidth: 460 }}>
+          <p className="text-lg text-white/50 mb-10 leading-relaxed mx-auto" style={{ maxWidth: 520 }}>
             Compite con tus amigos prediciendo los resultados de cada partido.{" "}
             <span className="text-gold-300">104 partidos</span>,{" "}
             <span style={{ color: "var(--color-purple-soft)" }}>48 selecciones</span>,{" "}
@@ -75,7 +75,7 @@ export default function HomePage() {
           </div>
 
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-4 mx-auto" style={{ maxWidth: 400 }}>
+          <div className="grid grid-cols-3 gap-4 mx-auto" style={{ maxWidth: 440 }}>
             {[
               { value: "48", label: "Selecciones" },
               { value: "104", label: "Partidos" },
@@ -96,7 +96,7 @@ export default function HomePage() {
       <section
         id="como-funciona"
         className="w-full flex justify-center px-8"
-        style={{ paddingTop: "6rem", paddingBottom: "6rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ paddingTop: "4.5rem", paddingBottom: "4.5rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="w-full" style={{ maxWidth: 1100 }}>
           <div className="text-center mb-14">
@@ -132,7 +132,7 @@ export default function HomePage() {
       {/* ── Scoring ─────────────────────────────────────────────── */}
       <section
         className="w-full flex justify-center px-8"
-        style={{ paddingTop: "6rem", paddingBottom: "6rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+        style={{ paddingTop: "4.5rem", paddingBottom: "4.5rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
       >
         <div className="w-full" style={{ maxWidth: 1100 }}>
           <div className="text-center mb-14">
