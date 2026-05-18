@@ -30,6 +30,11 @@ export default function Navbar() {
     getProfile();
   }, []);
 
+  // Close menu on route change
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     router.push("/");
@@ -52,34 +57,10 @@ export default function Navbar() {
         {/* Logo */}
         <Link href={profile ? "/dashboard" : "/"} className="flex items-center gap-2 group">
           <span className="text-2xl">🏆</span>
-          <span
-            className="font-[var(--font-heading)] text-xl font-bold text-gold-gradient hidden sm:block
-            group-hover:opacity-80 transition-opacity"
-          >
+          <span className="font-[var(--font-heading)] text-xl font-bold text-gold-gradient hidden sm:block group-hover:opacity-80 transition-opacity">
             Mundial 2026
           </span>
         </Link>
-
-        {/* Desktop nav */}
-        {profile && (
-          <div className="hidden md:flex items-center gap-1">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`px-4 py-2 rounded-xl text-sm font-medium transition-all duration-300
-                  ${
-                    pathname.startsWith(link.href)
-                      ? "bg-gold-400/15 text-gold-300 shadow-sm"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
-              >
-                <span className="mr-1.5">{link.icon}</span>
-                {link.label}
-              </Link>
-            ))}
-          </div>
-        )}
 
         {/* User section */}
         <div className="flex items-center gap-3">
@@ -97,12 +78,18 @@ export default function Navbar() {
               >
                 Salir
               </button>
-              {/* Mobile menu toggle */}
+              {/* Mobile hamburger */}
               <button
-                className="md:hidden text-white/60 hover:text-white p-1"
+                className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
                 onClick={() => setMenuOpen(!menuOpen)}
+                aria-label="Menú"
               >
-                {menuOpen ? "✕" : "☰"}
+                <span
+                  className="block w-5 transition-all duration-300"
+                  style={{ fontSize: "1.1rem", lineHeight: 1 }}
+                >
+                  {menuOpen ? "✕" : "☰"}
+                </span>
               </button>
             </>
           ) : (
@@ -113,30 +100,35 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu */}
-      {menuOpen && profile && (
-        <div className="md:hidden mt-3 pt-3 border-t border-white/10 flex flex-col gap-1">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              onClick={() => setMenuOpen(false)}
-              className={`px-4 py-3 rounded-xl text-sm font-medium transition-all
-                ${
-                  pathname.startsWith(link.href)
-                    ? "bg-gold-400/15 text-gold-300"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
-            >
-              <span className="mr-2">{link.icon}</span>
-              {link.label}
-            </Link>
-          ))}
-          <div className="px-4 py-2 text-sm text-white/40">
-            {profile.total_points} puntos · {profile.display_name}
+      {/* Mobile menu — animated with max-height */}
+      <div
+        className={`overflow-hidden transition-all duration-300 ease-out ${
+          menuOpen && profile ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+        }`}
+      >
+        {profile && (
+          <div className="pt-3 mt-3 border-t border-white/10 flex flex-col gap-0.5">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                  ${
+                    pathname.startsWith(link.href)
+                      ? "bg-gold-400/15 text-gold-300"
+                      : "text-white/60 hover:text-white hover:bg-white/5"
+                  }`}
+              >
+                <span>{link.icon}</span>
+                {link.label}
+              </Link>
+            ))}
+            <div className="px-4 py-2 mt-1 text-xs text-white/30">
+              {profile.total_points} puntos · {profile.display_name}
+            </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </nav>
   );
 }

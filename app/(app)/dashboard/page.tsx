@@ -76,9 +76,7 @@ export default function DashboardPage() {
         })
         .eq("id", existing.id);
 
-      if (error) {
-        alert(error.message);
-      }
+      if (error) alert(error.message);
     } else {
       const { error } = await supabase
         .from("match_predictions")
@@ -89,9 +87,7 @@ export default function DashboardPage() {
           predicted_away_goals: awayGoals,
         });
 
-      if (error) {
-        alert(error.message);
-      }
+      if (error) alert(error.message);
     }
 
     await loadData();
@@ -116,12 +112,16 @@ export default function DashboardPage() {
     return true;
   });
 
+  // Count predictions made for current filtered matches
+  const predCount = filteredMatches.filter((m) => predictions[m.id]).length;
+
   if (loading) {
     return (
-      <div className="max-w-4xl mx-auto px-4 py-12">
-        <div className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="skeleton h-40 w-full" />
+      <div className="px-4 py-8 max-w-5xl mx-auto">
+        <div className="skeleton h-8 w-48 mb-6 rounded-lg" />
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="skeleton h-36 w-full rounded-2xl" />
           ))}
         </div>
       </div>
@@ -129,43 +129,64 @@ export default function DashboardPage() {
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <h1 className="font-[var(--font-heading)] text-2xl sm:text-3xl font-bold">
-          ⚽ <span className="text-gold-gradient">Partidos</span>
-        </h1>
-        <p className="text-sm text-white/40 mt-1">
-          Introduce tu predicción antes de que se cierre el candado
-        </p>
+    <div className="px-4 py-6 max-w-5xl mx-auto">
+      {/* Page header */}
+      <div className="mb-6 flex items-end justify-between">
+        <div>
+          <h1 className="font-[var(--font-heading)] text-2xl sm:text-3xl font-bold">
+            <span className="text-gold-gradient">Partidos</span>
+          </h1>
+          <p className="text-sm text-white/40 mt-0.5">
+            Introduce tu predicción antes del candado
+          </p>
+        </div>
+        {filteredMatches.length > 0 && (
+          <div className="text-right shrink-0 ml-4">
+            <div className="font-[var(--font-heading)] text-xl font-bold text-gold-300">
+              {predCount}/{filteredMatches.length}
+            </div>
+            <div className="text-xs text-white/30">predicciones</div>
+          </div>
+        )}
       </div>
 
       {/* Stage tabs */}
-      <div className="flex gap-1 overflow-x-auto pb-2 mb-4 scrollbar-hide">
-        {stages.map((s) => (
-          <button
-            key={s.key}
-            onClick={() => {
-              setActiveStage(s.key);
-              if (s.key !== "group") setActiveGroup(null);
-            }}
-            className={`px-3 py-2 rounded-xl text-xs sm:text-sm font-medium whitespace-nowrap transition-all
-              ${activeStage === s.key
-                ? "bg-gold-400/15 text-gold-300 shadow-sm"
-                : "text-white/50 hover:text-white hover:bg-white/5"}`}
-          >
-            {s.label}
-          </button>
-        ))}
+      <div className="mb-1">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1">
+          {stages.map((s) => {
+            const isActive = activeStage === s.key;
+            return (
+              <button
+                key={s.key}
+                onClick={() => {
+                  setActiveStage(s.key);
+                  if (s.key !== "group") setActiveGroup(null);
+                }}
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all duration-200
+                  ${isActive
+                    ? "text-gold-300"
+                    : "text-white/40 hover:text-white/70 hover:bg-white/5"
+                  }`}
+                style={isActive ? { background: "rgba(212,175,55,0.12)" } : {}}
+              >
+                {s.label}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
-      {/* Group filter (only for group stage) */}
+      {/* Group filter — only for group stage */}
       {activeStage === "group" && (
-        <div className="flex gap-1 overflow-x-auto pb-2 mb-6 scrollbar-hide">
+        <div className="flex gap-1 overflow-x-auto scrollbar-hide pb-1 mb-5 mt-3">
           <button
             onClick={() => setActiveGroup(null)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-              ${!activeGroup ? "bg-purple-glow/20 text-purple-soft" : "text-white/40 hover:text-white/70"}`}
+            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
+              ${!activeGroup
+                ? "text-purple-soft"
+                : "text-white/35 hover:text-white/60 hover:bg-white/5"
+              }`}
+            style={!activeGroup ? { background: "rgba(168,85,247,0.12)" } : {}}
           >
             Todos
           </button>
@@ -173,8 +194,12 @@ export default function DashboardPage() {
             <button
               key={g}
               onClick={() => setActiveGroup(g)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all
-                ${activeGroup === g ? "bg-purple-glow/20 text-purple-soft" : "text-white/40 hover:text-white/70"}`}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200
+                ${activeGroup === g
+                  ? "text-purple-soft"
+                  : "text-white/35 hover:text-white/60 hover:bg-white/5"
+                }`}
+              style={activeGroup === g ? { background: "rgba(168,85,247,0.12)" } : {}}
             >
               {g}
             </button>
@@ -182,8 +207,11 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Matches list */}
-      <div className="space-y-4">
+      {/* Divider */}
+      <div className="mb-5 border-t border-white/5" />
+
+      {/* Matches grid — 1 col on mobile/tablet, 2 cols on xl */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
         {filteredMatches.map((match) => {
           const locked = isPredictionLocked(match.match_date);
           const pred = predictions[match.id];
@@ -193,143 +221,81 @@ export default function DashboardPage() {
           };
           const saving = savingMatch === match.id;
           const hasTeams = match.home_team && match.away_team;
+          const hasPrediction = !!pred;
+          const canSave = !locked && hasTeams && !match.is_finished;
 
           return (
             <div
               key={match.id}
-              className={`glass p-4 sm:p-6 transition-all duration-300 ${
-                locked ? "opacity-75" : "hover:glow-gold"
-              }`}
+              className={`glass rounded-2xl overflow-hidden transition-all duration-300 ${
+                locked ? "opacity-70" : "hover:glow-gold"
+              } ${hasPrediction && !match.is_finished ? "border-gold-400/10" : ""}`}
             >
-              {/* Match header */}
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="stage-badge">{formatStage(match.stage)}</span>
+              {/* Card header */}
+              <div
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="stage-badge shrink-0">{formatStage(match.stage)}</span>
                   {match.group_letter && (
-                    <span className="text-xs text-white/30">Grupo {match.group_letter}</span>
+                    <span className="text-xs text-white/30 shrink-0">Grupo {match.group_letter}</span>
                   )}
-                  <span className="text-xs text-white/20">#{match.match_number}</span>
+                  <span className="text-xs text-white/15 shrink-0">#{match.match_number}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0 ml-2">
+                  {hasPrediction && !match.is_finished && !locked && (
+                    <span className="text-xs text-success/70 font-medium">✓ Guardado</span>
+                  )}
                   {locked && (
-                    <span className="lock-pulse text-sm" title="Predicciones cerradas">🔒</span>
+                    <span className="lock-pulse text-xs text-white/35 flex items-center gap-1">
+                      🔒 <span className="hidden sm:inline">Cerrado</span>
+                    </span>
                   )}
                   {match.is_finished && (
-                    <span className="text-xs text-success font-medium">✓ Finalizado</span>
+                    <span className="text-xs text-success font-semibold">✓ Final</span>
                   )}
                 </div>
               </div>
 
-              {/* Teams & Score */}
-              {hasTeams ? (
-                <>
-                  {/* Mobile Layout (Stacked) */}
-                  <div className="flex flex-col gap-3 sm:hidden">
-                    {/* Home Team Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={getFlagUrl(match.home_team!.code, "w80")}
-                          alt={match.home_team!.name}
-                          width={32}
-                          height={22}
-                          className="flag-img shrink-0"
-                        />
-                        <span className="text-sm font-semibold">
-                          {match.home_team!.name}
-                        </span>
-                      </div>
-                      {match.is_finished ? (
-                        <div className="score-input flex items-center justify-center !w-12 !h-12 !text-base !cursor-default bg-gold-400/10 !border-gold-400/30 shrink-0">
-                          {match.home_goals}
-                        </div>
-                      ) : (
-                        <input
-                          type="number"
-                          min="0"
-                          max="20"
-                          disabled={locked}
-                          value={local.home}
-                          onChange={(e) =>
-                            setLocalPredictions((prev) => ({
-                              ...prev,
-                              [match.id]: { ...local, home: e.target.value },
-                            }))
-                          }
-                          className="score-input !w-12 !h-12 !text-base shrink-0"
-                          placeholder="-"
-                        />
-                      )}
-                    </div>
-
-                    {/* Away Team Row */}
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-3">
-                        <Image
-                          src={getFlagUrl(match.away_team!.code, "w80")}
-                          alt={match.away_team!.name}
-                          width={32}
-                          height={22}
-                          className="flag-img shrink-0"
-                        />
-                        <span className="text-sm font-semibold">
-                          {match.away_team!.name}
-                        </span>
-                      </div>
-                      {match.is_finished ? (
-                        <div className="score-input flex items-center justify-center !w-12 !h-12 !text-base !cursor-default bg-gold-400/10 !border-gold-400/30 shrink-0">
-                          {match.away_goals}
-                        </div>
-                      ) : (
-                        <input
-                          type="number"
-                          min="0"
-                          max="20"
-                          disabled={locked}
-                          value={local.away}
-                          onChange={(e) =>
-                            setLocalPredictions((prev) => ({
-                              ...prev,
-                              [match.id]: { ...local, away: e.target.value },
-                            }))
-                          }
-                          className="score-input !w-12 !h-12 !text-base shrink-0"
-                          placeholder="-"
-                        />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Desktop Layout (Horizontal) */}
-                  <div className="hidden sm:flex items-center justify-between gap-4">
+              {/* Teams & score */}
+              <div className="px-4 py-4">
+                {hasTeams ? (
+                  <div className="flex items-center gap-2">
                     {/* Home team */}
-                    <div className="flex-1 flex items-center gap-3 justify-end text-right">
-                      <span className="text-base font-semibold truncate">
-                        {match.home_team!.name}
-                      </span>
+                    <div className="flex items-center gap-2 flex-1 min-w-0">
                       <Image
                         src={getFlagUrl(match.home_team!.code, "w80")}
                         alt={match.home_team!.name}
-                        width={36}
-                        height={24}
+                        width={28}
+                        height={19}
                         className="flag-img shrink-0"
                       />
+                      <span className="text-sm font-semibold truncate">
+                        {match.home_team!.name}
+                      </span>
                     </div>
 
-                    {/* Score inputs */}
-                    <div className="flex items-center gap-2 shrink-0">
+                    {/* Score section */}
+                    <div className="flex items-center gap-1.5 shrink-0 mx-1">
                       {match.is_finished ? (
-                        <div className="flex items-center gap-2">
-                          <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
+                        <>
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-gold-300"
+                            style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.2)" }}
+                          >
                             {match.home_goals}
-                          </span>
-                          <span className="text-white/30 font-bold">-</span>
-                          <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
+                          </div>
+                          <span className="text-white/20 font-bold text-sm">—</span>
+                          <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center text-base font-bold text-gold-300"
+                            style={{ background: "rgba(212,175,55,0.12)", border: "1px solid rgba(212,175,55,0.2)" }}
+                          >
                             {match.away_goals}
-                          </span>
-                        </div>
+                          </div>
+                        </>
                       ) : (
-                        <div className="flex items-center gap-2">
+                        <>
                           <input
                             type="number"
                             min="0"
@@ -342,10 +308,10 @@ export default function DashboardPage() {
                                 [match.id]: { ...local, home: e.target.value },
                               }))
                             }
-                            className="score-input"
-                            placeholder="-"
+                            className="score-input !w-10 !h-10 !text-base"
+                            placeholder="—"
                           />
-                          <span className="text-white/30 font-bold">-</span>
+                          <span className="text-white/20 font-bold text-sm">—</span>
                           <input
                             type="number"
                             min="0"
@@ -358,52 +324,54 @@ export default function DashboardPage() {
                                 [match.id]: { ...local, away: e.target.value },
                               }))
                             }
-                            className="score-input"
-                            placeholder="-"
+                            className="score-input !w-10 !h-10 !text-base"
+                            placeholder="—"
                           />
-                        </div>
+                        </>
                       )}
                     </div>
 
                     {/* Away team */}
-                    <div className="flex-1 flex items-center gap-3">
+                    <div className="flex items-center gap-2 flex-1 min-w-0 justify-end">
+                      <span className="text-sm font-semibold truncate text-right">
+                        {match.away_team!.name}
+                      </span>
                       <Image
                         src={getFlagUrl(match.away_team!.code, "w80")}
                         alt={match.away_team!.name}
-                        width={36}
-                        height={24}
+                        width={28}
+                        height={19}
                         className="flag-img shrink-0"
                       />
-                      <span className="text-base font-semibold truncate">
-                        {match.away_team!.name}
-                      </span>
                     </div>
                   </div>
-                </>
-              ) : (
-                <div className="text-center py-4 text-white/30 text-sm">
-                  Equipos por determinar
-                </div>
-              )}
+                ) : (
+                  <div className="text-center py-2 text-white/25 text-sm">
+                    Equipos por determinar
+                  </div>
+                )}
+              </div>
 
-              {/* Footer: date + save button + points */}
-              <div className="mt-4 flex items-center justify-between">
-                <div className="text-xs text-white/30">
-                  {match.venue} · {formatMatchDate(match.match_date)}
+              {/* Card footer */}
+              <div
+                className="flex items-center justify-between px-4 py-2.5"
+                style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
+              >
+                <div className="text-xs text-white/25 truncate mr-2">
+                  {match.venue && <span>{match.venue} · </span>}
+                  {formatMatchDate(match.match_date)}
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                   {pred && pred.points_earned !== null && (
-                    <span className="points-badge">
-                      {pred.points_earned} pts
-                    </span>
+                    <span className="points-badge">{pred.points_earned} pts</span>
                   )}
-                  {!locked && hasTeams && !match.is_finished && (
+                  {canSave && (
                     <button
                       onClick={() => savePrediction(match.id)}
                       disabled={saving || !local.home || !local.away}
-                      className="btn-primary !py-1.5 !px-4 text-xs disabled:opacity-40"
+                      className="btn-primary !py-1.5 !px-3.5 text-xs disabled:opacity-40 disabled:cursor-not-allowed"
                     >
-                      {saving ? "..." : pred ? "Actualizar" : "Guardar"}
+                      {saving ? "..." : hasPrediction ? "Actualizar" : "Guardar"}
                     </button>
                   )}
                 </div>
@@ -413,7 +381,7 @@ export default function DashboardPage() {
         })}
 
         {filteredMatches.length === 0 && (
-          <div className="glass p-12 text-center text-white/30">
+          <div className="xl:col-span-2 glass rounded-2xl p-12 text-center text-white/30">
             No hay partidos en esta categoría.
           </div>
         )}
