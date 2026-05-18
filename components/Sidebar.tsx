@@ -48,89 +48,83 @@ export default function Sidebar() {
   return (
     <aside
       className="hidden lg:flex flex-col fixed left-0 top-0 h-screen w-60 z-40"
-      style={{
-        background: "rgba(4, 7, 20, 0.92)",
-        backdropFilter: "blur(24px)",
-        borderRight: "1px solid rgba(255,255,255,0.06)",
-      }}
+      style={{ background: "#0a0e22", borderRight: "1px solid rgba(255,255,255,0.07)" }}
     >
       {/* Logo */}
-      <div className="px-5 pt-7 pb-5">
-        <Link href="/dashboard" className="flex items-center gap-3 group">
-          <div
-            className="w-10 h-10 rounded-2xl flex items-center justify-center text-xl shrink-0 transition-transform group-hover:scale-105"
-            style={{ background: "rgba(212,175,55,0.12)" }}
-          >
-            🏆
+      <div style={{ padding: "28px 20px 20px" }}>
+        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+          <div style={{
+            width: 40, height: 40, borderRadius: 12, flexShrink: 0,
+            background: "rgba(212,175,55,0.12)",
+            border: "1px solid rgba(212,175,55,0.2)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            fontSize: "1.2rem",
+          }}>
+            ⚽
           </div>
           <div>
-            <div className="font-[var(--font-heading)] text-sm font-black text-gold-gradient leading-tight">
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.875rem", color: "#D4AF37", lineHeight: 1.2 }}>
               Mundial 2026
             </div>
-            <div className="text-[10px] text-white/30 leading-tight mt-0.5">
+            <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
               Porra de Predicciones
             </div>
           </div>
         </Link>
       </div>
 
-      <div className="mx-4 mb-4 border-t border-white/6" />
+      <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "0 16px 16px" }} />
 
       {/* Navigation links */}
-      <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
+      <nav style={{ flex: 1, padding: "0 12px", overflowY: "auto", display: "flex", flexDirection: "column", gap: 2 }}>
         {navLinks.map((link) => {
           const isActive = pathname.startsWith(link.href);
           return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-200
-                ${
-                  isActive
-                    ? "text-gold-300"
-                    : "text-white/45 hover:text-white/80 hover:bg-white/5"
-                }`}
-              style={isActive ? { background: "rgba(212,175,55,0.10)" } : {}}
-            >
-              <span className="text-base w-5 text-center shrink-0 leading-none">
-                {link.icon}
-              </span>
-              <span className="flex-1">{link.label}</span>
-              {isActive && (
-                <span className="w-1.5 h-1.5 rounded-full bg-gold-400 shrink-0" />
-              )}
+            <Link key={link.href} href={link.href} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px", borderRadius: 12,
+              textDecoration: "none",
+              fontSize: "0.875rem", fontWeight: 700,
+              fontFamily: "var(--font-heading)",
+              transition: "all 0.15s",
+              background: isActive ? "rgba(212,175,55,0.12)" : "transparent",
+              color: isActive ? "#D4AF37" : "rgba(255,255,255,0.45)",
+              outline: isActive ? "1px solid rgba(212,175,55,0.2)" : "none",
+            }}>
+              <span style={{ fontSize: "1rem", width: 20, textAlign: "center", flexShrink: 0 }}>{link.icon}</span>
+              <span style={{ flex: 1 }}>{link.label}</span>
+              {isActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4AF37", flexShrink: 0 }} />}
             </Link>
           );
         })}
       </nav>
 
-      <div className="mx-4 mb-4 border-t border-white/6" />
+      <div style={{ height: 1, background: "rgba(255,255,255,0.06)", margin: "16px 16px 0" }} />
 
       {/* User section */}
-      <div className="px-4 pb-6">
+      <div style={{ padding: "16px 16px 24px" }}>
         {loading ? (
-          <div className="skeleton h-12 rounded-xl" />
+          <div className="skeleton" style={{ height: 48, borderRadius: 12 }} />
         ) : profile ? (
-          <div className="flex items-center gap-3">
-            <div
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-sm shrink-0"
-              style={{ background: "rgba(255,255,255,0.05)" }}
-            >
-              👤
+          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: 10, flexShrink: 0,
+              background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center",
+              fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.9rem", color: "#D4AF37",
+            }}>
+              {profile.display_name.charAt(0).toUpperCase()}
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-white/75 truncate leading-tight">
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontSize: "0.82rem", fontWeight: 700, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                 {profile.display_name}
               </div>
-              <div className="text-xs font-semibold mt-0.5" style={{ color: "var(--color-gold-400)" }}>
+              <div style={{ fontSize: "0.72rem", fontWeight: 800, color: "#D4AF37", marginTop: 1 }}>
                 {profile.total_points} pts
               </div>
             </div>
-            <button
-              onClick={handleSignOut}
-              className="text-xs text-white/25 hover:text-white/60 transition-colors shrink-0 px-1 py-1"
-              title="Cerrar sesión"
-            >
+            <button onClick={handleSignOut}
+              style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.25)", background: "none", border: "none", cursor: "pointer", padding: "4px 6px", flexShrink: 0 }}>
               Salir
             </button>
           </div>
