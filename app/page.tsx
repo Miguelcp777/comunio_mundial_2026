@@ -1,31 +1,17 @@
 import Link from "next/link";
 
-function Section({ children, id, className = "" }: {
-  children: React.ReactNode;
-  id?: string;
-  className?: string;
-}) {
-  return (
-    <section
-      id={id}
-      className={`w-full flex justify-center px-6 py-20 ${className}`}
-      style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
-    >
-      <div className="w-full" style={{ maxWidth: "1100px" }}>
-        {children}
-      </div>
-    </section>
-  );
-}
-
 export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
 
-      {/* Navbar */}
+      {/* ── Navbar ─────────────────────────────────────────────── */}
       <nav
-        className="w-full flex items-center justify-between px-6 py-4 sticky top-0 z-50"
-        style={{ background: "rgba(4,7,20,0.85)", backdropFilter: "blur(16px)", borderBottom: "1px solid rgba(255,255,255,0.05)" }}
+        className="w-full flex items-center justify-between px-8 py-4 sticky top-0 z-50 shrink-0"
+        style={{
+          background: "rgba(4,7,20,0.88)",
+          backdropFilter: "blur(16px)",
+          borderBottom: "1px solid rgba(255,255,255,0.06)",
+        }}
       >
         <div className="flex items-center gap-2.5">
           <span className="text-xl">🏆</span>
@@ -38,37 +24,23 @@ export default function HomePage() {
         </Link>
       </nav>
 
-      {/* Hero */}
-      <div
-        className="w-full flex justify-center px-6 py-24 sm:py-32 relative"
-        style={{ flex: "1 0 auto" }}
+      {/* ── Hero — full viewport height ─────────────────────────── */}
+      <section
+        className="relative w-full flex flex-col items-center justify-center text-center px-8 shrink-0"
+        style={{ minHeight: "calc(100vh - 56px)", paddingTop: "5rem", paddingBottom: "5rem" }}
       >
-        {/* Glow decorations — clipped so they don't cause overflow */}
+        {/* Background glows */}
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-          <div
-            className="absolute rounded-full blur-3xl"
-            style={{
-              width: "500px", height: "500px",
-              top: "20%", left: "20%",
-              background: "rgba(212,175,55,0.06)",
-              transform: "translate(-50%, -50%)",
-            }}
-          />
-          <div
-            className="absolute rounded-full blur-3xl"
-            style={{
-              width: "500px", height: "500px",
-              top: "30%", right: "20%",
-              background: "rgba(109,40,217,0.06)",
-              transform: "translate(50%, -50%)",
-            }}
-          />
+          <div className="absolute rounded-full blur-3xl"
+            style={{ width: 600, height: 600, top: "30%", left: "25%", transform: "translate(-50%,-50%)", background: "rgba(212,175,55,0.07)" }} />
+          <div className="absolute rounded-full blur-3xl"
+            style={{ width: 600, height: 600, top: "30%", right: "25%", transform: "translate(50%,-50%)", background: "rgba(109,40,217,0.07)" }} />
         </div>
 
-        <div className="relative text-center w-full" style={{ maxWidth: "700px" }}>
+        <div className="relative w-full" style={{ maxWidth: 680 }}>
           {/* Badge */}
           <div
-            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-8 text-xs text-white/50"
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-10 text-xs text-white/50"
             style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
           >
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse inline-block" />
@@ -77,15 +49,15 @@ export default function HomePage() {
 
           {/* Title */}
           <h1
-            className="font-[var(--font-heading)] font-black leading-[0.9] tracking-tight mb-6"
-            style={{ fontSize: "clamp(4rem, 12vw, 9rem)" }}
+            className="font-[var(--font-heading)] font-black leading-[0.88] tracking-tight mb-8"
+            style={{ fontSize: "clamp(4.5rem, 13vw, 10rem)" }}
           >
             <span className="text-gold-gradient block">MUNDIAL</span>
             <span className="text-white block">2026</span>
           </h1>
 
           {/* Subtitle */}
-          <p className="text-base sm:text-lg text-white/50 mx-auto mb-10 leading-relaxed" style={{ maxWidth: "480px" }}>
+          <p className="text-lg text-white/50 mb-10 leading-relaxed mx-auto" style={{ maxWidth: 460 }}>
             Compite con tus amigos prediciendo los resultados de cada partido.{" "}
             <span className="text-gold-300">104 partidos</span>,{" "}
             <span style={{ color: "var(--color-purple-soft)" }}>48 selecciones</span>,{" "}
@@ -93,138 +65,141 @@ export default function HomePage() {
           </p>
 
           {/* CTAs */}
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-14">
-            <Link href="/login" className="btn-primary text-base !py-3 !px-8 w-full sm:w-auto">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16">
+            <Link href="/login" className="btn-primary text-base !py-3.5 !px-10 w-full sm:w-auto">
               🎯 Empezar a Predecir
             </Link>
-            <a href="#como-funciona" className="btn-secondary text-base !py-3 !px-8 w-full sm:w-auto">
+            <a href="#como-funciona" className="btn-secondary text-base !py-3.5 !px-10 w-full sm:w-auto">
               ¿Cómo funciona?
             </a>
           </div>
 
-          {/* Stats row */}
-          <div className="grid grid-cols-3 gap-3 mx-auto" style={{ maxWidth: "380px" }}>
+          {/* Stats */}
+          <div className="grid grid-cols-3 gap-4 mx-auto" style={{ maxWidth: 400 }}>
             {[
               { value: "48", label: "Selecciones" },
               { value: "104", label: "Partidos" },
               { value: "5 pts", label: "Máx / partido" },
-            ].map((stat) => (
-              <div key={stat.label} className="glass rounded-2xl p-4 text-center">
-                <div className="font-[var(--font-heading)] text-2xl font-black text-gold-gradient leading-none">
-                  {stat.value}
+            ].map((s) => (
+              <div key={s.label} className="glass rounded-2xl py-5 px-3 text-center">
+                <div className="font-[var(--font-heading)] text-2xl font-black text-gold-gradient leading-none mb-1.5">
+                  {s.value}
                 </div>
-                <div className="text-[10px] text-white/35 mt-1.5">{stat.label}</div>
+                <div className="text-[10px] text-white/35 uppercase tracking-wide">{s.label}</div>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* How it works */}
-      <Section id="como-funciona">
-        <h2 className="font-[var(--font-heading)] text-2xl sm:text-3xl font-bold text-center mb-2">
-          ¿Cómo <span className="text-gold-gradient">funciona</span>?
-        </h2>
-        <p className="text-center text-white/35 text-sm mb-10">Cuatro pasos para empezar a competir</p>
+      {/* ── How it works ────────────────────────────────────────── */}
+      <section
+        id="como-funciona"
+        className="w-full flex justify-center px-8"
+        style={{ paddingTop: "6rem", paddingBottom: "6rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div className="w-full" style={{ maxWidth: 1100 }}>
+          <div className="text-center mb-14">
+            <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold mb-3">
+              ¿Cómo <span className="text-gold-gradient">funciona</span>?
+            </h2>
+            <p className="text-white/35 text-sm">Cuatro pasos para empezar a competir</p>
+          </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {[
-            { step: "01", icon: "📝", title: "Regístrate", desc: "Crea tu cuenta con email y elige tu nombre de jugador." },
-            { step: "02", icon: "🏆", title: "Predicción del Torneo", desc: "Elige tu Campeón, Subcampeón y 3er Clasificado antes del inicio." },
-            { step: "03", icon: "⚽", title: "Predice los Partidos", desc: "Introduce el marcador exacto que crees para cada encuentro." },
-            { step: "04", icon: "📊", title: "Sube en la Tabla", desc: "Gana puntos y compite por la primera posición del ranking." },
-          ].map((item) => (
-            <div
-              key={item.step}
-              className="glass rounded-2xl p-5 group transition-all duration-300 hover:glow-gold"
-            >
-              <div className="text-xs font-mono mb-3" style={{ color: "rgba(212,175,55,0.45)" }}>{item.step}</div>
-              <div className="text-3xl mb-3">{item.icon}</div>
-              <h3 className="font-[var(--font-heading)] font-bold text-sm mb-2 group-hover:text-gold-300 transition-colors">
-                {item.title}
-              </h3>
-              <p className="text-xs text-white/35 leading-relaxed">{item.desc}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Scoring */}
-      <Section>
-        <h2 className="font-[var(--font-heading)] text-2xl sm:text-3xl font-bold text-center mb-2">
-          Sistema de <span className="text-gold-gradient">Puntos</span>
-        </h2>
-        <p className="text-center text-white/35 text-sm mb-10">Cuánto puedes ganar por cada predicción</p>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Per match */}
-          <div className="glass-strong rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <span>⚽</span>
-              <h3 className="font-[var(--font-heading)] font-bold text-sm" style={{ color: "var(--color-purple-soft)" }}>
-                Por partido — máximo 5 puntos
-              </h3>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { pts: "+3", desc: "Acertar el signo (1-X-2)", color: "text-gold-300" },
-              { pts: "+1", desc: "Goles del equipo local exactos", color: "text-success" },
-              { pts: "+1", desc: "Goles del equipo visitante exactos", color: "text-success" },
-              { pts: "= 5", desc: "Pleno: resultado exacto completo", color: "text-gold-400" },
-            ].map((row, i) => (
+              { step: "01", icon: "📝", title: "Regístrate", desc: "Crea tu cuenta con email y elige tu nombre de jugador." },
+              { step: "02", icon: "🏆", title: "Predicción del Torneo", desc: "Elige tu Campeón, Subcampeón y 3er Clasificado antes del inicio." },
+              { step: "03", icon: "⚽", title: "Predice los Partidos", desc: "Introduce el marcador exacto que crees para cada encuentro." },
+              { step: "04", icon: "📊", title: "Sube en la Tabla", desc: "Gana puntos y compite por la primera posición del ranking." },
+            ].map((item) => (
               <div
-                key={i}
-                className="flex items-center gap-4 py-2.5"
-                style={{ borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
+                key={item.step}
+                className="glass rounded-2xl p-7 group transition-all duration-300 hover:glow-gold"
               >
-                <span className={`font-[var(--font-heading)] font-black text-xl w-10 shrink-0 ${row.color}`}>
-                  {row.pts}
-                </span>
-                <span className="text-sm text-white/60">{row.desc}</span>
+                <div className="text-xs font-mono mb-4" style={{ color: "rgba(212,175,55,0.45)" }}>{item.step}</div>
+                <div className="text-4xl mb-4">{item.icon}</div>
+                <h3 className="font-[var(--font-heading)] font-bold text-base mb-2.5 group-hover:text-gold-300 transition-colors">
+                  {item.title}
+                </h3>
+                <p className="text-sm text-white/35 leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
+        </div>
+      </section>
 
-          {/* Tournament */}
-          <div className="glass-strong rounded-2xl p-6">
-            <div className="flex items-center gap-2 mb-5">
-              <span>🏆</span>
-              <h3 className="font-[var(--font-heading)] font-bold text-sm" style={{ color: "var(--color-purple-soft)" }}>
-                Predicción del Torneo
-              </h3>
+      {/* ── Scoring ─────────────────────────────────────────────── */}
+      <section
+        className="w-full flex justify-center px-8"
+        style={{ paddingTop: "6rem", paddingBottom: "6rem", borderTop: "1px solid rgba(255,255,255,0.06)" }}
+      >
+        <div className="w-full" style={{ maxWidth: 1100 }}>
+          <div className="text-center mb-14">
+            <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold mb-3">
+              Sistema de <span className="text-gold-gradient">Puntos</span>
+            </h2>
+            <p className="text-white/35 text-sm">Cuánto puedes ganar por cada predicción</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            <div className="glass-strong rounded-2xl p-8">
+              <div className="flex items-center gap-2.5 mb-6">
+                <span className="text-xl">⚽</span>
+                <h3 className="font-[var(--font-heading)] font-bold" style={{ color: "var(--color-purple-soft)" }}>
+                  Por partido — máximo 5 puntos
+                </h3>
+              </div>
+              {[
+                { pts: "+3", desc: "Acertar el signo (1-X-2)", color: "text-gold-300" },
+                { pts: "+1", desc: "Goles del equipo local exactos", color: "text-success" },
+                { pts: "+1", desc: "Goles del equipo visitante exactos", color: "text-success" },
+                { pts: "= 5", desc: "Pleno: resultado exacto completo", color: "text-gold-400" },
+              ].map((row, i) => (
+                <div key={i} className="flex items-center gap-5 py-3.5"
+                  style={{ borderBottom: i < 3 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                  <span className={`font-[var(--font-heading)] font-black text-2xl w-12 shrink-0 ${row.color}`}>{row.pts}</span>
+                  <span className="text-white/65">{row.desc}</span>
+                </div>
+              ))}
             </div>
-            {[
-              { pts: "+30", desc: "Campeón del Mundial correcto", emoji: "🥇" },
-              { pts: "+20", desc: "Subcampeón correcto", emoji: "🥈" },
-              { pts: "+15", desc: "Tercer Clasificado correcto", emoji: "🥉" },
-            ].map((row, i) => (
-              <div
-                key={i}
-                className="flex items-center gap-4 py-2.5"
-                style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}
-              >
-                <span className="font-[var(--font-heading)] font-black text-xl text-gold-300 w-10 shrink-0">
-                  {row.pts}
-                </span>
-                <span className="text-sm text-white/60 flex-1">{row.desc}</span>
-                <span className="text-base shrink-0">{row.emoji}</span>
+
+            <div className="glass-strong rounded-2xl p-8">
+              <div className="flex items-center gap-2.5 mb-6">
+                <span className="text-xl">🏆</span>
+                <h3 className="font-[var(--font-heading)] font-bold" style={{ color: "var(--color-purple-soft)" }}>
+                  Predicción del Torneo
+                </h3>
               </div>
-            ))}
-            <p className="mt-4 pt-4 text-xs text-white/25" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
-              Las predicciones del torneo se bloquean al inicio del Mundial.
-            </p>
+              {[
+                { pts: "+30", desc: "Campeón del Mundial correcto", emoji: "🥇" },
+                { pts: "+20", desc: "Subcampeón correcto", emoji: "🥈" },
+                { pts: "+15", desc: "Tercer Clasificado correcto", emoji: "🥉" },
+              ].map((row, i) => (
+                <div key={i} className="flex items-center gap-5 py-3.5"
+                  style={{ borderBottom: i < 2 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                  <span className="font-[var(--font-heading)] font-black text-2xl text-gold-300 w-12 shrink-0">{row.pts}</span>
+                  <span className="text-white/65 flex-1">{row.desc}</span>
+                  <span className="text-xl shrink-0">{row.emoji}</span>
+                </div>
+              ))}
+              <p className="mt-5 pt-4 text-xs text-white/25" style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+                Las predicciones del torneo se bloquean al inicio del Mundial.
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-14 text-center">
+            <Link href="/login" className="btn-primary text-base !py-4 !px-12">
+              🎯 Empezar ahora — es gratis
+            </Link>
           </div>
         </div>
+      </section>
 
-        <div className="mt-10 text-center">
-          <Link href="/login" className="btn-primary text-base !py-3 !px-10">
-            🎯 Empezar ahora — es gratis
-          </Link>
-        </div>
-      </Section>
-
-      {/* Footer */}
+      {/* ── Footer ──────────────────────────────────────────────── */}
       <footer
-        className="w-full text-center text-xs text-white/20 py-6 px-6"
+        className="w-full text-center text-xs text-white/20 py-8 px-8 mt-auto"
         style={{ borderTop: "1px solid rgba(255,255,255,0.05)" }}
       >
         Comunio Mundial 2026 · Hecho con ❤️ para jugar con amigos
