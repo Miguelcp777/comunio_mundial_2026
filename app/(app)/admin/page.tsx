@@ -271,14 +271,14 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
             <SectionLabel>Asignar equipos</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <select value={homeId} onChange={e => setHomeId(e.target.value)}
-                style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "white", fontSize: "0.82rem", outline: "none" }}>
-                <option value="">Equipo local...</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                style={{ padding: "10px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark" }}>
+                <option value="" style={{ background: "#1a2035", color: "rgba(255,255,255,0.5)" }}>Equipo local...</option>
+                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{t.name}</option>)}
               </select>
               <select value={awayId} onChange={e => setAwayId(e.target.value)}
-                style={{ padding: "10px 12px", borderRadius: 10, background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.12)", color: "white", fontSize: "0.82rem", outline: "none" }}>
-                <option value="">Equipo visitante...</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                style={{ padding: "10px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark" }}>
+                <option value="" style={{ background: "#1a2035", color: "rgba(255,255,255,0.5)" }}>Equipo visitante...</option>
+                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{t.name}</option>)}
               </select>
             </div>
           </div>
