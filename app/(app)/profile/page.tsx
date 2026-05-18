@@ -2,9 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl } from "@/lib/utils";
 import type { Profile, Team, TournamentPrediction, MatchPrediction } from "@/lib/types/database";
-import Image from "next/image";
 import Link from "next/link";
 
 export default function ProfilePage() {
@@ -120,84 +118,43 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Tournament prediction */}
-      <div style={{
-        background: "#0d1225",
-        border: "1px solid rgba(255,255,255,0.07)",
-        borderRadius: 18, padding: "24px",
-      }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 20 }}>
-          <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "1rem", color: "white", display: "flex", alignItems: "center", gap: 8 }}>
-            <span>🏆</span> Predicción del Torneo
-          </h2>
-          <Link href="/onboarding" style={{ fontSize: "0.78rem", color: "rgba(212,175,55,0.6)", textDecoration: "none", fontWeight: 700 }}>
-            Editar →
-          </Link>
+      {/* Tournament prediction — card linking to /torneo */}
+      <Link href="/torneo" style={{ textDecoration: "none" }}>
+        <div style={{
+          background: "#0d1225",
+          border: "1px solid rgba(212,175,55,0.2)",
+          borderRadius: 18, padding: "20px 24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16,
+          cursor: "pointer",
+          transition: "border-color 0.15s",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{
+              width: 48, height: 48, borderRadius: 14, flexShrink: 0,
+              background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.2)",
+              display: "flex", alignItems: "center", justifyContent: "center", fontSize: "1.5rem",
+            }}>🏆</div>
+            <div>
+              <div style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "1rem", color: "white" }}>
+                Predicción del Torneo
+              </div>
+              <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>
+                {tournamentPred
+                  ? `Campeón: ${getTeam(tournamentPred.champion_team_id)?.name ?? "—"}`
+                  : "Aún no has hecho tu predicción"}
+              </div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexShrink: 0 }}>
+            {tournamentPred?.points_earned != null && (
+              <span style={{ background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#070b1e", fontFamily: "var(--font-heading)", fontWeight: 900, padding: "4px 12px", borderRadius: 20, fontSize: "0.82rem" }}>
+                {tournamentPred.points_earned} pts
+              </span>
+            )}
+            <span style={{ fontSize: "1rem", color: "rgba(212,175,55,0.5)" }}>→</span>
+          </div>
         </div>
-
-        {tournamentPred ? (
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-            {[
-              { label: "Campeón",    teamId: tournamentPred.champion_team_id,   emoji: "🥇", pts: "+30" },
-              { label: "Subcampeón", teamId: tournamentPred.runner_up_team_id,  emoji: "🥈", pts: "+20" },
-              { label: "3er Puesto", teamId: tournamentPred.third_place_team_id,emoji: "🥉", pts: "+15" },
-            ].map((item) => {
-              const team = getTeam(item.teamId);
-              return (
-                <div key={item.label} style={{
-                  background: "rgba(255,255,255,0.02)",
-                  border: "1px solid rgba(255,255,255,0.07)",
-                  borderRadius: 12, padding: "16px 10px",
-                  textAlign: "center",
-                }}>
-                  <div style={{ fontSize: "1.8rem", marginBottom: 10 }}>{item.emoji}</div>
-                  {team ? (
-                    <>
-                      <Image src={getFlagUrl(team.code, "w80")} alt={team.name}
-                        width={36} height={24} style={{ borderRadius: 4, margin: "0 auto 8px", display: "block", boxShadow: "0 2px 8px rgba(0,0,0,0.4)" }} />
-                      <div style={{ fontSize: "0.78rem", fontWeight: 700, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {team.name}
-                      </div>
-                    </>
-                  ) : (
-                    <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.2)" }}>Sin seleccionar</div>
-                  )}
-                  <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.25)", marginTop: 6 }}>{item.label} · {item.pts}</div>
-                </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div style={{ textAlign: "center", padding: "24px 0" }}>
-            <p style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.3)", marginBottom: 16 }}>
-              No has hecho tu predicción del torneo aún
-            </p>
-            <Link href="/onboarding" style={{
-              background: "linear-gradient(135deg, #D4AF37, #b8941e)",
-              color: "#070b1e", fontWeight: 800,
-              padding: "10px 24px", borderRadius: 10,
-              fontSize: "0.85rem", textDecoration: "none",
-              fontFamily: "var(--font-heading)",
-              display: "inline-block",
-            }}>
-              Hacer predicción
-            </Link>
-          </div>
-        )}
-
-        {tournamentPred?.points_earned !== null && tournamentPred?.points_earned !== undefined && (
-          <div style={{
-            marginTop: 16, paddingTop: 16,
-            borderTop: "1px solid rgba(255,255,255,0.06)",
-            display: "flex", alignItems: "center", justifyContent: "space-between",
-          }}>
-            <span style={{ fontSize: "0.85rem", color: "rgba(255,255,255,0.4)" }}>Puntos del torneo</span>
-            <span style={{ background: "linear-gradient(135deg, #D4AF37, #b8941e)", color: "#070b1e", fontFamily: "var(--font-heading)", fontWeight: 900, padding: "4px 14px", borderRadius: 20, fontSize: "0.85rem" }}>
-              {tournamentPred.points_earned} pts
-            </span>
-          </div>
-        )}
-      </div>
+      </Link>
 
       {/* Recent predictions */}
       <div style={{

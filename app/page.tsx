@@ -24,7 +24,7 @@ export default function HomePage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <span style={{ fontSize: 20 }}>⚽</span>
           <span style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: 14, color: "#D4AF37", letterSpacing: "-0.01em" }}>
-            Comunio Mundial 2026
+            La penya Penua · Mundial 2026
           </span>
         </div>
         <Link href="/login" style={{
@@ -59,6 +59,11 @@ export default function HomePage() {
             <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: 11, color: "rgba(255,255,255,0.7)", letterSpacing: "0.08em", textTransform: "uppercase" }}>
               Predicciones abiertas · FIFA World Cup 2026
             </span>
+          </div>
+
+          {/* Group name */}
+          <div style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "clamp(0.9rem, 2.5vw, 1.15rem)", color: "rgba(255,255,255,0.55)", letterSpacing: "0.04em", textTransform: "uppercase", marginBottom: 10 }}>
+            Comunio · La penya Penua
           </div>
 
           {/* Main title */}

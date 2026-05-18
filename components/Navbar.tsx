@@ -43,7 +43,8 @@ export default function Navbar() {
 
   const navLinks = [
     { href: "/dashboard", label: "Partidos", icon: "⚽" },
-    { href: "/leaderboard", label: "Clasificación", icon: "🏆" },
+    { href: "/torneo", label: "Predicción Torneo", icon: "🏆" },
+    { href: "/leaderboard", label: "Clasificación", icon: "📊" },
     { href: "/profile", label: "Mi Perfil", icon: "👤" },
   ];
 
@@ -58,7 +59,7 @@ export default function Navbar() {
         <Link href={profile ? "/dashboard" : "/"} className="flex items-center gap-2 group">
           <span className="text-2xl">🏆</span>
           <span className="font-[var(--font-heading)] text-xl font-bold text-gold-gradient hidden sm:block group-hover:opacity-80 transition-opacity">
-            Mundial 2026
+            La penya Penua · Mundial 2026
           </span>
         </Link>
 

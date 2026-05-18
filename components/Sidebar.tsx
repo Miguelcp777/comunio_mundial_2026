@@ -37,7 +37,8 @@ export default function Sidebar() {
 
   const navLinks = [
     { href: "/dashboard", label: "Partidos", icon: "⚽" },
-    { href: "/leaderboard", label: "Clasificación", icon: "🏆" },
+    { href: "/torneo", label: "Predicción Torneo", icon: "🏆" },
+    { href: "/leaderboard", label: "Clasificación", icon: "📊" },
     { href: "/profile", label: "Mi Perfil", icon: "👤" },
   ];
 
@@ -63,11 +64,11 @@ export default function Sidebar() {
             ⚽
           </div>
           <div>
-            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.875rem", color: "#D4AF37", lineHeight: 1.2 }}>
-              Mundial 2026
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.8rem", color: "#D4AF37", lineHeight: 1.2 }}>
+              La penya Penua
             </div>
             <div style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
-              Porra de Predicciones
+              Mundial 2026
             </div>
           </div>
         </Link>

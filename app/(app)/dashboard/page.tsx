@@ -40,7 +40,8 @@ export default function DashboardPage() {
     const { data: matchesData } = await supabase
       .from("matches")
       .select("*, home_team:teams!matches_home_team_id_fkey(*), away_team:teams!matches_away_team_id_fkey(*)")
-      .order("match_number");
+      .order("match_date", { ascending: true, nullsFirst: false })
+      .order("match_number", { ascending: true });
 
     if (matchesData) setMatches(matchesData as MatchWithTeams[]);
 
@@ -104,7 +105,7 @@ export default function DashboardPage() {
     return (
       <div style={{ padding: "24px 16px", maxWidth: 960, margin: "0 auto" }}>
         <div className="skeleton" style={{ height: 32, width: 200, borderRadius: 8, marginBottom: 24 }} />
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))", gap: 12 }}>
           {[1,2,3,4].map(i => <div key={i} className="skeleton" style={{ height: 140, borderRadius: 16 }} />)}
         </div>
       </div>
@@ -179,7 +180,7 @@ export default function DashboardPage() {
       <div style={{ borderBottom: "1px solid rgba(255,255,255,0.06)", marginBottom: 16 }} />
 
       {/* Match grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 340px), 1fr))", gap: 12 }}>
         {filteredMatches.map((match) => {
           const locked = isPredictionLocked(match.match_date);
           const pred = predictions[match.id];
