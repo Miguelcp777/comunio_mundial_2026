@@ -174,14 +174,22 @@ body {
   background: rgba(255, 255, 255, 0.06);
   border: 2px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
-  width: 64px;
-  height: 64px;
+  width: 48px;
+  height: 48px;
   text-align: center;
-  font-size: 1.75rem;
+  font-size: 1.25rem;
   font-weight: 800;
   color: #e2e8f0;
   font-family: var(--font-heading);
   transition: all 0.3s ease;
+}
+
+@media (min-width: 640px) {
+  .score-input {
+    width: 64px;
+    height: 64px;
+    font-size: 1.75rem;
+  }
 }
 
 .score-input:focus {

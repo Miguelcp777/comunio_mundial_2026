@@ -222,35 +222,28 @@ export default function DashboardPage() {
 
               {/* Teams & Score */}
               {hasTeams ? (
-                <div className="flex items-center justify-between gap-2 sm:gap-4">
-                  {/* Home team */}
-                  <div className="flex-1 flex items-center gap-2 sm:gap-3 justify-end text-right">
-                    <span className="text-sm sm:text-base font-semibold truncate">
-                      {match.home_team!.name}
-                    </span>
-                    <Image
-                      src={getFlagUrl(match.home_team!.code, "w80")}
-                      alt={match.home_team!.name}
-                      width={36}
-                      height={24}
-                      className="flag-img shrink-0"
-                    />
-                  </div>
-
-                  {/* Score inputs */}
-                  <div className="flex items-center gap-2 shrink-0">
-                    {match.is_finished ? (
-                      <div className="flex items-center gap-2">
-                        <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
-                          {match.home_goals}
-                        </span>
-                        <span className="text-white/30 font-bold">-</span>
-                        <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
-                          {match.away_goals}
+                <>
+                  {/* Mobile Layout (Stacked) */}
+                  <div className="flex flex-col gap-3 sm:hidden">
+                    {/* Home Team Row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={getFlagUrl(match.home_team!.code, "w80")}
+                          alt={match.home_team!.name}
+                          width={32}
+                          height={22}
+                          className="flag-img shrink-0"
+                        />
+                        <span className="text-sm font-semibold">
+                          {match.home_team!.name}
                         </span>
                       </div>
-                    ) : (
-                      <div className="flex items-center gap-2">
+                      {match.is_finished ? (
+                        <div className="score-input flex items-center justify-center !w-12 !h-12 !text-base !cursor-default bg-gold-400/10 !border-gold-400/30 shrink-0">
+                          {match.home_goals}
+                        </div>
+                      ) : (
                         <input
                           type="number"
                           min="0"
@@ -263,10 +256,31 @@ export default function DashboardPage() {
                               [match.id]: { ...local, home: e.target.value },
                             }))
                           }
-                          className="score-input"
+                          className="score-input !w-12 !h-12 !text-base shrink-0"
                           placeholder="-"
                         />
-                        <span className="text-white/30 font-bold">-</span>
+                      )}
+                    </div>
+
+                    {/* Away Team Row */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={getFlagUrl(match.away_team!.code, "w80")}
+                          alt={match.away_team!.name}
+                          width={32}
+                          height={22}
+                          className="flag-img shrink-0"
+                        />
+                        <span className="text-sm font-semibold">
+                          {match.away_team!.name}
+                        </span>
+                      </div>
+                      {match.is_finished ? (
+                        <div className="score-input flex items-center justify-center !w-12 !h-12 !text-base !cursor-default bg-gold-400/10 !border-gold-400/30 shrink-0">
+                          {match.away_goals}
+                        </div>
+                      ) : (
                         <input
                           type="number"
                           min="0"
@@ -279,27 +293,93 @@ export default function DashboardPage() {
                               [match.id]: { ...local, away: e.target.value },
                             }))
                           }
-                          className="score-input"
+                          className="score-input !w-12 !h-12 !text-base shrink-0"
                           placeholder="-"
                         />
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
-                  {/* Away team */}
-                  <div className="flex-1 flex items-center gap-2 sm:gap-3">
-                    <Image
-                      src={getFlagUrl(match.away_team!.code, "w80")}
-                      alt={match.away_team!.name}
-                      width={36}
-                      height={24}
-                      className="flag-img shrink-0"
-                    />
-                    <span className="text-sm sm:text-base font-semibold truncate">
-                      {match.away_team!.name}
-                    </span>
+                  {/* Desktop Layout (Horizontal) */}
+                  <div className="hidden sm:flex items-center justify-between gap-4">
+                    {/* Home team */}
+                    <div className="flex-1 flex items-center gap-3 justify-end text-right">
+                      <span className="text-base font-semibold truncate">
+                        {match.home_team!.name}
+                      </span>
+                      <Image
+                        src={getFlagUrl(match.home_team!.code, "w80")}
+                        alt={match.home_team!.name}
+                        width={36}
+                        height={24}
+                        className="flag-img shrink-0"
+                      />
+                    </div>
+
+                    {/* Score inputs */}
+                    <div className="flex items-center gap-2 shrink-0">
+                      {match.is_finished ? (
+                        <div className="flex items-center gap-2">
+                          <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
+                            {match.home_goals}
+                          </span>
+                          <span className="text-white/30 font-bold">-</span>
+                          <span className="score-input flex items-center justify-center !cursor-default bg-gold-400/10 !border-gold-400/30">
+                            {match.away_goals}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            disabled={locked}
+                            value={local.home}
+                            onChange={(e) =>
+                              setLocalPredictions((prev) => ({
+                                ...prev,
+                                [match.id]: { ...local, home: e.target.value },
+                              }))
+                            }
+                            className="score-input"
+                            placeholder="-"
+                          />
+                          <span className="text-white/30 font-bold">-</span>
+                          <input
+                            type="number"
+                            min="0"
+                            max="20"
+                            disabled={locked}
+                            value={local.away}
+                            onChange={(e) =>
+                              setLocalPredictions((prev) => ({
+                                ...prev,
+                                [match.id]: { ...local, away: e.target.value },
+                              }))
+                            }
+                            className="score-input"
+                            placeholder="-"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Away team */}
+                    <div className="flex-1 flex items-center gap-3">
+                      <Image
+                        src={getFlagUrl(match.away_team!.code, "w80")}
+                        alt={match.away_team!.name}
+                        width={36}
+                        height={24}
+                        className="flag-img shrink-0"
+                      />
+                      <span className="text-base font-semibold truncate">
+                        {match.away_team!.name}
+                      </span>
+                    </div>
                   </div>
-                </div>
+                </>
               ) : (
                 <div className="text-center py-4 text-white/30 text-sm">
                   Equipos por determinar
