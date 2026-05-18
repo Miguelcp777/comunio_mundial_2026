@@ -30,10 +30,7 @@ export default function Navbar() {
     getProfile();
   }, []);
 
-  // Close menu on route change
-  useEffect(() => {
-    setMenuOpen(false);
-  }, [pathname]);
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -42,10 +39,10 @@ export default function Navbar() {
   };
 
   const navLinks = [
-    { href: "/dashboard", label: "Partidos", icon: "⚽" },
-    { href: "/torneo", label: "Predicción Torneo", icon: "🏆" },
-    { href: "/leaderboard", label: "Clasificación", icon: "📊" },
-    { href: "/profile", label: "Mi Perfil", icon: "👤" },
+    { href: "/dashboard",   label: "Partidos",           icon: "⚽" },
+    { href: "/torneo",      label: "Predicción Torneo",  icon: "🏆" },
+    { href: "/leaderboard", label: "Clasificación",      icon: "📊" },
+    { href: "/profile",     label: "Mi Perfil",          icon: "👤" },
   ];
 
   if (profile?.is_admin) {
@@ -53,44 +50,66 @@ export default function Navbar() {
   }
 
   return (
-    <nav className="glass-strong sticky top-0 z-50 px-4 py-3">
-      <div className="max-w-6xl mx-auto flex items-center justify-between">
+    <nav
+      className="lg:hidden sticky top-0 z-50"
+      style={{
+        background: "rgba(10,14,34,0.97)",
+        backdropFilter: "blur(16px)",
+        borderBottom: menuOpen ? "none" : "1px solid rgba(255,255,255,0.07)",
+      }}
+    >
+      {/* Top bar */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 58 }}>
+
         {/* Logo */}
-        <Link href={profile ? "/dashboard" : "/"} className="flex items-center gap-2 group">
-          <span className="text-2xl">🏆</span>
-          <span className="font-[var(--font-heading)] text-xl font-bold text-gold-gradient hidden sm:block group-hover:opacity-80 transition-opacity">
-            La penya Penua · Mundial 2026
-          </span>
+        <Link href={profile ? "/dashboard" : "/"} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+          <span style={{ fontSize: 20 }}>⚽</span>
+          <div>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.82rem", color: "#D4AF37", lineHeight: 1.1 }}>
+              La penya Penua
+            </div>
+            <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)" }}>
+              Mundial 2026
+            </div>
+          </div>
         </Link>
 
-        {/* User section */}
-        <div className="flex items-center gap-3">
+        {/* Right side */}
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           {loading ? (
-            <div className="skeleton w-24 h-8" />
+            <div className="skeleton" style={{ width: 36, height: 36, borderRadius: 10 }} />
           ) : profile ? (
             <>
-              <div className="hidden sm:flex items-center gap-2">
-                <span className="points-badge">{profile.total_points} pts</span>
-                <span className="text-sm text-white/60">{profile.display_name}</span>
+              {/* Points badge */}
+              <div style={{
+                background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.2)",
+                borderRadius: 8, padding: "4px 10px",
+                fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.8rem", color: "#D4AF37",
+              }}>
+                {profile.total_points} pts
               </div>
+
+              {/* Hamburger — avatar initial + lines */}
               <button
-                onClick={handleSignOut}
-                className="text-sm text-white/40 hover:text-white/80 transition-colors"
-              >
-                Salir
-              </button>
-              {/* Mobile hamburger */}
-              <button
-                className="p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/5 transition-all"
                 onClick={() => setMenuOpen(!menuOpen)}
                 aria-label="Menú"
+                style={{
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  width: 40, height: 40, borderRadius: 12,
+                  background: menuOpen ? "rgba(212,175,55,0.12)" : "rgba(255,255,255,0.05)",
+                  border: `1px solid ${menuOpen ? "rgba(212,175,55,0.25)" : "rgba(255,255,255,0.1)"}`,
+                  cursor: "pointer", transition: "all 0.2s", flexShrink: 0,
+                }}
               >
-                <span
-                  className="block w-5 transition-all duration-300"
-                  style={{ fontSize: "1.1rem", lineHeight: 1 }}
-                >
-                  {menuOpen ? "✕" : "☰"}
-                </span>
+                {menuOpen ? (
+                  <span style={{ fontSize: "1rem", color: "#D4AF37", lineHeight: 1 }}>✕</span>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 4, alignItems: "center" }}>
+                    <span style={{ display: "block", width: 18, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.7)" }} />
+                    <span style={{ display: "block", width: 14, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.5)" }} />
+                    <span style={{ display: "block", width: 18, height: 2, borderRadius: 2, background: "rgba(255,255,255,0.7)" }} />
+                  </div>
+                )}
               </button>
             </>
           ) : (
@@ -101,32 +120,85 @@ export default function Navbar() {
         </div>
       </div>
 
-      {/* Mobile menu — animated with max-height */}
+      {/* Dropdown panel */}
       <div
-        className={`overflow-hidden transition-all duration-300 ease-out ${
-          menuOpen && profile ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
-        }`}
+        style={{
+          overflow: "hidden",
+          maxHeight: menuOpen && profile ? 500 : 0,
+          opacity: menuOpen && profile ? 1 : 0,
+          transition: "max-height 0.3s ease, opacity 0.2s ease",
+          borderTop: menuOpen ? "1px solid rgba(255,255,255,0.07)" : "none",
+          borderBottom: menuOpen ? "1px solid rgba(255,255,255,0.07)" : "none",
+        }}
       >
         {profile && (
-          <div className="pt-3 mt-3 border-t border-white/10 flex flex-col gap-0.5">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
-                  ${
-                    pathname.startsWith(link.href)
-                      ? "bg-gold-400/15 text-gold-300"
-                      : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
-              >
-                <span>{link.icon}</span>
-                {link.label}
-              </Link>
-            ))}
-            <div className="px-4 py-2 mt-1 text-xs text-white/30">
-              {profile.total_points} puntos · {profile.display_name}
+          <div style={{ padding: "12px 12px 16px" }}>
+
+            {/* User info row */}
+            <div style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px 14px 12px",
+              marginBottom: 4,
+              borderBottom: "1px solid rgba(255,255,255,0.06)",
+            }}>
+              <div style={{
+                width: 38, height: 38, borderRadius: 10, flexShrink: 0,
+                background: "rgba(212,175,55,0.1)", border: "1px solid rgba(212,175,55,0.2)",
+                display: "flex", alignItems: "center", justifyContent: "center",
+                fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem", color: "#D4AF37",
+              }}>
+                {profile.display_name.charAt(0).toUpperCase()}
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: "0.87rem", fontWeight: 700, color: "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {profile.display_name}
+                </div>
+                <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                  {profile.total_points} puntos acumulados
+                </div>
+              </div>
             </div>
+
+            {/* Nav links */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 2, marginBottom: 8 }}>
+              {navLinks.map((link) => {
+                const isActive = pathname.startsWith(link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    style={{
+                      display: "flex", alignItems: "center", gap: 14,
+                      padding: "12px 14px", borderRadius: 12, textDecoration: "none",
+                      background: isActive ? "rgba(212,175,55,0.1)" : "transparent",
+                      border: isActive ? "1px solid rgba(212,175,55,0.18)" : "1px solid transparent",
+                      color: isActive ? "#D4AF37" : "rgba(255,255,255,0.55)",
+                      fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.9rem",
+                      transition: "all 0.15s",
+                    }}
+                  >
+                    <span style={{ fontSize: "1.1rem", width: 22, textAlign: "center", flexShrink: 0 }}>{link.icon}</span>
+                    <span style={{ flex: 1 }}>{link.label}</span>
+                    {isActive && <span style={{ width: 6, height: 6, borderRadius: "50%", background: "#D4AF37" }} />}
+                  </Link>
+                );
+              })}
+            </div>
+
+            {/* Sign out */}
+            <button
+              onClick={handleSignOut}
+              style={{
+                width: "100%", padding: "11px 14px", borderRadius: 12, border: "none",
+                background: "rgba(239,68,68,0.06)", cursor: "pointer",
+                display: "flex", alignItems: "center", gap: 14,
+                color: "rgba(239,68,68,0.7)", fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.9rem",
+                transition: "all 0.15s",
+              }}
+            >
+              <span style={{ fontSize: "1.1rem", width: 22, textAlign: "center" }}>🚪</span>
+              Cerrar sesión
+            </button>
           </div>
         )}
       </div>
