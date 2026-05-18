@@ -55,8 +55,13 @@ body {
   background: linear-gradient(135deg, var(--color-midnight-950) 0%, var(--color-purple-deep) 50%, var(--color-midnight-900) 100%);
   color: #e2e8f0;
   min-height: 100vh;
+  overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  overflow-x: hidden;
 }
 
 /* Glass card effect */
