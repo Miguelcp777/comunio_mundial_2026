@@ -4,7 +4,7 @@ export default function HomePage() {
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero Section */}
-      <header className="relative overflow-hidden">
+      <header className="relative w-full overflow-hidden">
         {/* Background decoration */}
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-gold-400/5 rounded-full blur-3xl" />
@@ -12,7 +12,7 @@ export default function HomePage() {
           <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top,rgba(212,175,55,0.05),transparent_50%)]" />
         </div>
 
-        <div className="relative max-w-6xl mx-auto px-4 py-20 sm:py-32 text-center">
+        <div className="relative w-full max-w-6xl mx-auto px-4 py-20 sm:py-32 text-center">
           {/* Badge */}
           <div className="inline-flex items-center gap-2 glass px-4 py-2 mb-8 text-sm text-white/60">
             <span className="w-2 h-2 rounded-full bg-success animate-pulse" />
@@ -63,8 +63,8 @@ export default function HomePage() {
       </header>
 
       {/* How it works */}
-      <section id="como-funciona" className="py-20 px-4">
-        <div className="max-w-4xl mx-auto">
+      <section id="como-funciona" className="relative w-full py-20 px-4">
+        <div className="w-full max-w-6xl mx-auto">
           <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold text-center mb-12">
             ¿Cómo <span className="text-gold-gradient">funciona</span>?
           </h2>
@@ -110,8 +110,8 @@ export default function HomePage() {
       </section>
 
       {/* Scoring */}
-      <section className="py-20 px-4">
-        <div className="max-w-3xl mx-auto">
+      <section className="relative w-full py-20 px-4">
+        <div className="w-full max-w-4xl mx-auto">
           <h2 className="font-[var(--font-heading)] text-3xl sm:text-4xl font-bold text-center mb-12">
             Sistema de <span className="text-gold-gradient">Puntos</span>
           </h2>
@@ -156,8 +156,8 @@ export default function HomePage() {
       </section>
 
       {/* Footer */}
-      <footer className="mt-auto py-8 px-4 border-t border-white/5">
-        <div className="max-w-6xl mx-auto text-center text-sm text-white/30">
+      <footer className="relative w-full mt-auto py-8 px-4 border-t border-white/5">
+        <div className="w-full max-w-6xl mx-auto text-center text-sm text-white/30">
           <p>Comunio Mundial 2026 · Hecho con ❤️ para jugar con amigos</p>
         </div>
       </footer>
