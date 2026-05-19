@@ -50,7 +50,7 @@ export default function AdminPage() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [tab, setTab] = useState<"usuarios" | "partidos">("partidos");
+  const [tab, setTab] = useState<"usuarios" | "partidos" | "sync">("partidos");
   const [koStage, setKoStage] = useState("quarter_final");
 
   const loadData = useCallback(async () => {
@@ -110,16 +110,20 @@ export default function AdminPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ display: "flex", gap: 6, marginBottom: 20 }}>
-        {(["partidos", "usuarios"] as const).map(t => (
-          <button key={t} onClick={() => setTab(t)} style={{
+      <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
+        {([
+          { key: "partidos", label: "⚽ Partidos KO" },
+          { key: "usuarios", label: "👥 Usuarios" },
+          { key: "sync",     label: "🔄 Sincronización API" },
+        ] as const).map(t => (
+          <button key={t.key} onClick={() => setTab(t.key)} style={{
             padding: "8px 18px", borderRadius: 10, border: "none", cursor: "pointer",
             fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.82rem",
-            background: tab === t ? "rgba(212,175,55,0.15)" : "transparent",
-            color: tab === t ? "#D4AF37" : "rgba(255,255,255,0.4)",
-            outline: tab === t ? "1px solid rgba(212,175,55,0.25)" : "none",
+            background: tab === t.key ? "rgba(212,175,55,0.15)" : "transparent",
+            color: tab === t.key ? "#D4AF37" : "rgba(255,255,255,0.4)",
+            outline: tab === t.key ? "1px solid rgba(212,175,55,0.25)" : "none",
           }}>
-            {t === "partidos" ? "⚽ Partidos KO" : "👥 Usuarios"}
+            {t.label}
           </button>
         ))}
       </div>
@@ -169,6 +173,9 @@ export default function AdminPage() {
       {tab === "usuarios" && (
         <UsersPanel users={users} onUpdate={loadData} />
       )}
+
+      {/* ── SYNC TAB ── */}
+      {tab === "sync" && <SyncPanel />}
     </div>
   );
 }
@@ -333,6 +340,209 @@ function UsersPanel({ users, onUpdate }: { users: Profile[]; onUpdate: () => voi
       <p style={{ marginTop: 10, fontSize: "0.72rem", color: "rgba(255,255,255,0.2)" }}>
         * Borrar usuario requiere <code style={{ color: "rgba(168,85,247,0.8)" }}>SUPABASE_SERVICE_ROLE_KEY</code> en .env.local
       </p>
+    </div>
+  );
+}
+
+/* ── SyncPanel ── */
+function SyncPanel() {
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncResult, setSyncResult] = useState<any>(null);
+
+  const loadStatus = async () => {
+    setLoading(true);
+    try {
+      const res = await fetch("/api/admin/sync-status");
+      const data = await res.json();
+      setStatus(data);
+    } catch {
+      setStatus({ error: "Error al conectar con la API" });
+    }
+    setLoading(false);
+  };
+
+  const forceSync = async () => {
+    setSyncing(true);
+    setSyncResult(null);
+    try {
+      const res = await fetch("/api/admin/force-sync", { method: "POST" });
+      const data = await res.json();
+      setSyncResult(data);
+      await loadStatus();
+    } catch {
+      setSyncResult({ error: "Error al sincronizar" });
+    }
+    setSyncing(false);
+  };
+
+  useEffect(() => { loadStatus(); }, []);
+
+  const card = (bg: string, border: string) => ({
+    background: bg, border: `1px solid ${border}`, borderRadius: 14, padding: "14px 18px",
+  });
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+      {/* Header actions */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, flexWrap: "wrap" }}>
+        <div>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.95rem", color: "white" }}>
+            Estado de sincronización con TheSportsDB
+          </p>
+          <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", marginTop: 2 }}>
+            Cron automático cada 5 min · Liga FIFA World Cup ID: 4429
+          </p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <Btn variant="ghost" onClick={loadStatus} disabled={loading} small>
+            {loading ? "Cargando..." : "↻ Actualizar"}
+          </Btn>
+          <Btn onClick={forceSync} disabled={syncing} small>
+            {syncing ? "Sincronizando..." : "⚡ Sync ahora"}
+          </Btn>
+        </div>
+      </div>
+
+      {/* Sync result feedback */}
+      {syncResult && (
+        <div style={{
+          ...card(
+            syncResult.error ? "rgba(239,68,68,0.08)" : syncResult.updated > 0 ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.04)",
+            syncResult.error ? "rgba(239,68,68,0.25)" : syncResult.updated > 0 ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.1)"
+          ),
+        }}>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.88rem", color: syncResult.error ? "#ef4444" : syncResult.updated > 0 ? "#22c55e" : "rgba(255,255,255,0.6)" }}>
+            {syncResult.error ?? syncResult.message}
+          </p>
+          {syncResult.match_ids?.length > 0 && (
+            <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              Partidos actualizados: #{syncResult.match_ids.join(", #")}
+            </p>
+          )}
+        </div>
+      )}
+
+      {status && !status.error && (
+        <>
+          {/* Stats strip */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: 10 }}>
+            {[
+              { label: "Partidos pendientes",   value: status.pending_count,              color: status.pending_count > 0 ? "#eab308" : "#22c55e" },
+              { label: "Eventos API (hoy/ayer)", value: status.sportsdb_events_today,      color: "#a855f7" },
+              { label: "Completados recientes",  value: status.recent_finished?.length,    color: "#D4AF37" },
+              { label: "Equipos sin mapear",     value: status.unmapped_api_teams?.length, color: status.unmapped_api_teams?.length > 0 ? "#ef4444" : "#22c55e" },
+            ].map(s => (
+              <div key={s.label} style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 12, padding: "12px 14px" }}>
+                <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1.5rem", color: s.color, lineHeight: 1 }}>{s.value}</div>
+                <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.35)", marginTop: 4 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Unmapped teams warning */}
+          {status.unmapped_api_teams?.length > 0 && (
+            <div style={card("rgba(239,68,68,0.07)", "rgba(239,68,68,0.2)")}>
+              <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "#ef4444", marginBottom: 8 }}>
+                ⚠️ Nombres de equipo desconocidos en TheSportsDB
+              </p>
+              <p style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>
+                Estos nombres no tienen mapeo y no se sincronizarán:
+              </p>
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+                {status.unmapped_api_teams.map((n: string) => (
+                  <span key={n} style={{ background: "rgba(239,68,68,0.12)", border: "1px solid rgba(239,68,68,0.25)", borderRadius: 6, padding: "3px 10px", fontSize: "0.78rem", color: "#ef4444", fontFamily: "var(--font-heading)", fontWeight: 700 }}>
+                    {n}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Pending matches mapping check */}
+          {status.mapping_check?.length > 0 && (
+            <div style={{ background: "#0d1225", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "white" }}>
+                  Partidos pendientes — estado API
+                </p>
+              </div>
+              {status.mapping_check.map((m: any) => {
+                const ok = m.home.mapped && m.away.mapped;
+                const found = m.found_in_api;
+                return (
+                  <div key={m.match_id} style={{
+                    display: "grid", gridTemplateColumns: "auto 1fr auto", gap: 12,
+                    padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                    alignItems: "center",
+                  }}>
+                    <span style={{ fontSize: "1rem" }}>
+                      {found ? (m.api_status === "Match Finished" || m.api_status === "FT" ? "✅" : "🟡") : ok ? "🔵" : "❌"}
+                    </span>
+                    <div>
+                      <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "white" }}>
+                        {m.home.name ?? "?"} vs {m.away.name ?? "?"}
+                      </div>
+                      <div style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.35)", marginTop: 2 }}>
+                        #{m.match_number} · {m.match_date?.slice(0, 10)}
+                        {found && m.api_status && ` · API: ${m.api_status}`}
+                        {found && m.api_score && ` · ${m.api_score}`}
+                        {!found && ok && " · No encontrado en API hoy/ayer"}
+                        {!ok && ` · Sin mapeo: ${!m.home.mapped ? m.home.name : ""}${!m.home.mapped && !m.away.mapped ? ", " : ""}${!m.away.mapped ? m.away.name : ""}`}
+                      </div>
+                    </div>
+                    <div style={{ fontSize: "0.7rem", fontFamily: "var(--font-heading)", fontWeight: 700, color: found && (m.api_status === "Match Finished" || m.api_status === "FT") ? "#22c55e" : found ? "#eab308" : ok ? "#a855f7" : "#ef4444" }}>
+                      {found && (m.api_status === "Match Finished" || m.api_status === "FT") ? "LISTO" : found ? "EN CURSO" : ok ? "MAPEADO" : "SIN MAPEO"}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Recently finished */}
+          {status.recent_finished?.length > 0 && (
+            <div style={{ background: "#0d1225", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ padding: "12px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
+                <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "white" }}>
+                  Últimos partidos sincronizados ✅
+                </p>
+              </div>
+              {status.recent_finished.map((m: any) => (
+                <div key={m.id} style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12,
+                  padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
+                }}>
+                  <div style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.7)" }}>
+                    {m.home_team?.name ?? "?"} vs {m.away_team?.name ?? "?"}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.9rem", color: "#D4AF37", flexShrink: 0 }}>
+                    {m.home_goals} — {m.away_goals}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.2)", textAlign: "center" }}>
+            Última consulta: {new Date(status.timestamp).toLocaleString("es-ES")} · Free tier: max 3 resultados/día vía API
+          </p>
+        </>
+      )}
+
+      {status?.error && (
+        <div style={card("rgba(239,68,68,0.08)", "rgba(239,68,68,0.2)")}>
+          <p style={{ fontSize: "0.85rem", color: "#ef4444" }}>{status.error}</p>
+        </div>
+      )}
+
+      {loading && !status && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+          {[1, 2, 3].map(i => <div key={i} className="skeleton" style={{ height: 60, borderRadius: 12 }} />)}
+        </div>
+      )}
     </div>
   );
 }
