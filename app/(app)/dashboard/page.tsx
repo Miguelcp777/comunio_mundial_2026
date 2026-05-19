@@ -1,10 +1,151 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getFlagUrl, formatMatchDate, formatStage, isPredictionLocked, getTeamName } from "@/lib/utils";
 import type { Team, Match, MatchPrediction } from "@/lib/types/database";
 import Image from "next/image";
+
+/* ─── News modal ─── */
+interface NewsItem { title: string; link: string; pubDate: string; source: string; description: string; }
+
+function NewsModal({ team, onClose }: { team: { code: string; name: string }; onClose: () => void }) {
+  const [items, setItems] = useState<NewsItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLoading(true); setError(false); setItems([]);
+    fetch(`/api/news?code=${team.code}`)
+      .then(r => r.json())
+      .then(d => { setItems(d.items ?? []); setError(!d.items?.length); })
+      .catch(() => setError(true))
+      .finally(() => setLoading(false));
+  }, [team.code]);
+
+  // Close on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  // Close on Escape
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  function formatDate(dateStr: string) {
+    if (!dateStr) return "";
+    try { return new Date(dateStr).toLocaleDateString("es-ES", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }); }
+    catch { return ""; }
+  }
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "16px",
+    }}>
+      <div ref={ref} style={{
+        width: "100%", maxWidth: 500, maxHeight: "85vh",
+        background: "#0d1225", borderRadius: 20,
+        border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)",
+          flexShrink: 0,
+        }}>
+          <Image src={getFlagUrl(team.code, "w80")} alt={team.name} width={32} height={21}
+            style={{ borderRadius: 4, boxShadow: "0 2px 6px rgba(0,0,0,0.4)", flexShrink: 0 }} />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem", color: "white" }}>
+              {team.name}
+            </div>
+            <div style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.35)", marginTop: 1 }}>
+              Últimas noticias
+            </div>
+          </div>
+          <button onClick={onClose} style={{
+            width: 32, height: 32, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+            background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+            cursor: "pointer", fontSize: "0.9rem", flexShrink: 0,
+            display: "flex", alignItems: "center", justifyContent: "center",
+          }}>✕</button>
+        </div>
+
+        {/* Body */}
+        <div style={{ overflowY: "auto", flex: 1, padding: "12px 14px" }}>
+          {loading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              {[1,2,3,4].map(i => (
+                <div key={i} className="skeleton" style={{ height: 72, borderRadius: 12 }} />
+              ))}
+            </div>
+          )}
+
+          {!loading && error && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.25)", fontSize: "0.85rem" }}>
+              No se encontraron noticias recientes.
+            </div>
+          )}
+
+          {!loading && !error && items.map((item, i) => (
+            <a key={i} href={item.link} target="_blank" rel="noopener noreferrer"
+              style={{ display: "block", textDecoration: "none", marginBottom: 8 }}>
+              <div style={{
+                padding: "12px 14px", borderRadius: 12,
+                background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)",
+                transition: "border-color 0.15s, background 0.15s",
+              }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(212,175,55,0.25)"; (e.currentTarget as HTMLElement).style.background = "rgba(212,175,55,0.04)"; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = "rgba(255,255,255,0.07)"; (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.03)"; }}
+              >
+                <div style={{ fontSize: "0.83rem", fontWeight: 700, color: "rgba(255,255,255,0.88)", lineHeight: 1.4, marginBottom: 6 }}>
+                  {item.title}
+                </div>
+                {item.description && (
+                  <div style={{ fontSize: "0.73rem", color: "rgba(255,255,255,0.4)", lineHeight: 1.4, marginBottom: 6 }}>
+                    {item.description}…
+                  </div>
+                )}
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  {item.source && (
+                    <span style={{ fontSize: "0.65rem", fontWeight: 700, color: "#D4AF37", background: "rgba(212,175,55,0.1)", padding: "2px 7px", borderRadius: 6 }}>
+                      {item.source}
+                    </span>
+                  )}
+                  {item.pubDate && (
+                    <span style={{ fontSize: "0.65rem", color: "rgba(255,255,255,0.25)" }}>
+                      {formatDate(item.pubDate)}
+                    </span>
+                  )}
+                  <span style={{ marginLeft: "auto", fontSize: "0.65rem", color: "rgba(212,175,55,0.6)" }}>Leer →</span>
+                </div>
+              </div>
+            </a>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: "10px 18px", borderTop: "1px solid rgba(255,255,255,0.06)",
+          fontSize: "0.65rem", color: "rgba(255,255,255,0.2)", textAlign: "center", flexShrink: 0,
+        }}>
+          Fuente: Google News en español · Se actualiza cada 15 min
+        </div>
+      </div>
+    </div>
+  );
+}
 
 type MatchWithTeams = Match & {
   home_team: Team | null;
@@ -32,6 +173,7 @@ export default function DashboardPage() {
   const [activeStage, setActiveStage] = useState("group");
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [localPredictions, setLocalPredictions] = useState<Record<number, { home: string; away: string }>>({});
+  const [newsTeam, setNewsTeam] = useState<{ code: string; name: string } | null>(null);
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -136,6 +278,9 @@ export default function DashboardPage() {
 
   return (
     <div style={{ padding: "24px 16px", maxWidth: 960, margin: "0 auto" }}>
+
+      {/* News modal */}
+      {newsTeam && <NewsModal team={newsTeam} onClose={() => setNewsTeam(null)} />}
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20 }}>
@@ -263,10 +408,13 @@ export default function DashboardPage() {
                 {hasTeams ? (
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {/* Home */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
+                    <div
+                      onClick={() => setNewsTeam({ code: match.home_team!.code, name: getTeamName(match.home_team!.code, match.home_team!.name) })}
+                      title="Ver noticias"
+                      style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, cursor: "pointer" }}>
                       <Image src={getFlagUrl(match.home_team!.code, "w80")} alt={getTeamName(match.home_team!.code, match.home_team!.name)}
                         width={26} height={17} style={{ borderRadius: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.4)", flexShrink: 0 }} />
-                      <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textDecoration: "underline dotted rgba(255,255,255,0.2)" }}>
                         {getTeamName(match.home_team!.code, match.home_team!.name)}
                       </span>
                     </div>
@@ -309,8 +457,11 @@ export default function DashboardPage() {
                     </div>
 
                     {/* Away */}
-                    <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
-                      <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
+                    <div
+                      onClick={() => setNewsTeam({ code: match.away_team!.code, name: getTeamName(match.away_team!.code, match.away_team!.name) })}
+                      title="Ver noticias"
+                      style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end", cursor: "pointer" }}>
+                      <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right", textDecoration: "underline dotted rgba(255,255,255,0.2)" }}>
                         {getTeamName(match.away_team!.code, match.away_team!.name)}
                       </span>
                       <Image src={getFlagUrl(match.away_team!.code, "w80")} alt={getTeamName(match.away_team!.code, match.away_team!.name)}
