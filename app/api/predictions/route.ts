@@ -41,10 +41,10 @@ export async function GET(request: Request) {
   // Only reveal predictions after the 15-min lock window
   const deadline = new Date(match.match_date).getTime() - 15 * 60 * 1000;
   if (Date.now() < deadline) {
-    return NextResponse.json(
-      { error: "Los pronósticos se revelan 15 minutos antes del partido" },
-      { status: 403 }
-    );
+    return NextResponse.json({
+      available: false,
+      message: "No puedes ver los pronósticos hasta que el partido esté bloqueado para predicciones (15 min antes del pitido).",
+    });
   }
 
   // Fetch all predictions with the user's display_name

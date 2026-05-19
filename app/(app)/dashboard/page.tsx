@@ -26,14 +26,16 @@ function PredictionsModal({
   const [items, setItems] = useState<PredItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notAvailable, setNotAvailable] = useState<string | null>(null);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    setLoading(true); setError(null); setItems([]);
+    setLoading(true); setError(null); setNotAvailable(null); setItems([]);
     fetch(`/api/predictions?matchId=${match.id}`)
       .then(r => r.json())
       .then(d => {
-        if (d.error) { setError(d.error); }
+        if (d.available === false) { setNotAvailable(d.message); }
+        else if (d.error) { setError(d.error); }
         else { setItems(d.items ?? []); }
       })
       .catch(() => setError("No se pudieron cargar los pronósticos."))
@@ -114,6 +116,19 @@ function PredictionsModal({
               {[1,2,3,4,5].map(i => (
                 <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10 }} />
               ))}
+            </div>
+          )}
+
+          {!loading && notAvailable && (
+            <div style={{
+              margin: "24px 0", padding: "20px 18px", borderRadius: 14,
+              background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.2)",
+              display: "flex", flexDirection: "column", alignItems: "center", gap: 10, textAlign: "center",
+            }}>
+              <span style={{ fontSize: "1.8rem" }}>🔒</span>
+              <p style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.6, margin: 0 }}>
+                {notAvailable}
+              </p>
             </div>
           )}
 
