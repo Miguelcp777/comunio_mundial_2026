@@ -63,6 +63,28 @@ export default function DashboardPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // Supabase Realtime: update match scores live as they come in
+  useEffect(() => {
+    const channel = supabase
+      .channel("matches-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "matches" },
+        (payload) => {
+          setMatches((prev) =>
+            prev.map((m) =>
+              m.id === payload.new.id
+                ? { ...m, home_goals: payload.new.home_goals, away_goals: payload.new.away_goals, is_finished: payload.new.is_finished }
+                : m
+            )
+          );
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase]);
+
   const savePrediction = async (matchId: number) => {
     if (!userId) return;
     const local = localPredictions[matchId];

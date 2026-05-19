@@ -56,6 +56,27 @@ export default function LeaderboardPage() {
     loadData();
   }, []);
 
+  // Supabase Realtime: re-sort leaderboard when points change
+  useEffect(() => {
+    const channel = supabase
+      .channel("profiles-live")
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles" },
+        (payload) => {
+          setProfiles((prev) => {
+            const updated = prev.map((p) =>
+              p.id === payload.new.id ? { ...p, total_points: payload.new.total_points } : p
+            );
+            return [...updated].sort((a, b) => b.total_points - a.total_points);
+          });
+        }
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [supabase]);
+
   const openDetail = useCallback(async (profile: Profile) => {
     setLoadingDetail(true);
     setDetail({ profile, tournamentPoints: null, champion: null, runnerUp: null, thirdPlace: null, matches: [] });

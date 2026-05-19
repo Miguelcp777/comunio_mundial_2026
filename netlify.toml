@@ -7,3 +7,11 @@
 
 [build.environment]
   NEXT_PRIVATE_LOCAL_WEBPACK = "true"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+
+[[scheduled_functions]]
+  function = "sync-results"
+  schedule = "*/5 * * * *"
