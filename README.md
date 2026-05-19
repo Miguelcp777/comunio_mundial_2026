@@ -1,36 +1,79 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# La penya Penua — Porra Mundial 2026
 
-## Getting Started
+Aplicación de predicciones para el FIFA World Cup 2026, hecha para un grupo privado de amigos. Permite predecir resultados de cada partido y el podio final del torneo, con clasificación en tiempo real.
 
-First, run the development server:
+## Stack
+
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 16 (App Router, React 19) |
+| Lenguaje | TypeScript strict |
+| Estilos | Tailwind CSS v4 |
+| Base de datos / Auth | Supabase (PostgreSQL + RLS + Realtime) |
+| Deploy | Netlify (con Scheduled Functions) |
+
+## Funcionalidades
+
+- **Predicciones de partido** — marca el resultado antes del cierre (15 min antes del pitido)
+- **Predicción del torneo** — elige campeón, subcampeón y tercer clasificado
+- **Clasificación en tiempo real** — se actualiza vía Supabase Realtime cuando llegan resultados
+- **Noticias por selección** — al clicar cualquier equipo en el dashboard se abren las últimas noticias en español (Google News RSS)
+- **Sync automático de resultados** — Netlify Scheduled Function cada 5 minutos consulta TheSportsDB
+- **Panel admin** — introducción manual de resultados y sync forzado con la API
+- **Página de información** — explicación de la mecánica, puntuaciones y fechas límite
+
+## Sistema de puntos
+
+**Por partido** (máx. 5 pts):
+- +3 — acertar el signo (1/X/2)
+- +1 — acertar goles del equipo local
+- +1 — acertar goles del equipo visitante
+
+**Por torneo**:
+- +30 — campeón correcto
+- +20 — subcampeón correcto
+- +15 — tercer clasificado correcto
+
+## Desarrollo local
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+npm install
+npm run dev      # Turbopack dev server en http://localhost:3000
+npm run build    # Build de producción
+npm run lint     # ESLint
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### Variables de entorno
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Crea un `.env.local` con:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+NEXT_PUBLIC_SUPABASE_URL=...
+NEXT_PUBLIC_SUPABASE_ANON_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...
+```
 
-## Learn More
+## Estructura de rutas
 
-To learn more about Next.js, take a look at the following resources:
+```
+app/
+├── (app)/
+│   ├── dashboard/      # Lista de partidos y predicciones
+│   ├── torneo/         # Predicción campeón/sub/3º
+│   ├── leaderboard/    # Clasificación general
+│   ├── info/           # Cómo funciona la porra
+│   ├── profile/        # Perfil del usuario
+│   └── admin/          # Panel de administración
+├── api/
+│   ├── admin/
+│   │   ├── save-result/   # Guardar resultado manual
+│   │   ├── force-sync/    # Forzar sync con TheSportsDB
+│   │   └── sync-status/   # Estado del sync
+│   └── news/              # Noticias RSS por selección (Google News)
+├── login/              # Autenticación magic link
+└── onboarding/         # Setup inicial de perfil
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Deploy
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+El proyecto se despliega automáticamente en Netlify al hacer push a `main`. La Scheduled Function `netlify/functions/sync-results.mts` sincroniza resultados cada 5 minutos.
