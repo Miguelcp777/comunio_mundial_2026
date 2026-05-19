@@ -8,7 +8,16 @@ import Image from "next/image";
 
 type MatchWithTeams = Match & { home_team: Team | null; away_team: Team | null };
 
-const KO_STAGES = ["quarter_final", "semi_final", "third_place", "final"];
+const ALL_STAGES = [
+  { key: "group",        label: "Grupos" },
+  { key: "round_of_32",  label: "32avos" },
+  { key: "round_of_16",  label: "Octavos" },
+  { key: "quarter_final",label: "Cuartos" },
+  { key: "semi_final",   label: "Semis" },
+  { key: "third_place",  label: "3er Puesto" },
+  { key: "final",        label: "Final" },
+];
+const GROUPS = "ABCDEFGHIJKL".split("");
 
 /* ── helpers ── */
 function Btn({ children, onClick, disabled, variant = "gold", small = false }: {
@@ -51,7 +60,8 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [tab, setTab] = useState<"usuarios" | "partidos" | "sync">("partidos");
-  const [koStage, setKoStage] = useState("quarter_final");
+  const [activeStage, setActiveStage] = useState("group");
+  const [activeGroup, setActiveGroup] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -77,7 +87,11 @@ export default function AdminPage() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
-  const koMatches = matches.filter(m => KO_STAGES.includes(m.stage) && m.stage === koStage);
+  const visibleMatches = matches.filter(m => {
+    if (m.stage !== activeStage) return false;
+    if (activeStage === "group" && activeGroup && m.group_letter !== activeGroup) return false;
+    return true;
+  });
 
   if (loading) return (
     <div style={{ padding: "24px 16px", maxWidth: 900, margin: "0 auto" }}>
@@ -112,7 +126,7 @@ export default function AdminPage() {
       {/* Tabs */}
       <div style={{ display: "flex", gap: 6, marginBottom: 20, flexWrap: "wrap" }}>
         {([
-          { key: "partidos", label: "⚽ Partidos KO" },
+          { key: "partidos", label: "⚽ Partidos" },
           { key: "usuarios", label: "👥 Usuarios" },
           { key: "sync",     label: "🔄 Sincronización API" },
         ] as const).map(t => (
@@ -132,35 +146,73 @@ export default function AdminPage() {
       {tab === "partidos" && (
         <div>
           {/* Stage selector */}
-          <div style={{ display: "flex", gap: 6, marginBottom: 16, flexWrap: "wrap" }}>
-            {[
-              { key: "quarter_final", label: "Cuartos de Final" },
-              { key: "semi_final",    label: "Semifinales" },
-              { key: "third_place",   label: "3er Puesto" },
-              { key: "final",         label: "Final" },
-            ].map(s => (
-              <button key={s.key} onClick={() => setKoStage(s.key)} style={{
-                padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
-                fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.78rem",
-                background: koStage === s.key ? "rgba(168,85,247,0.15)" : "transparent",
-                color: koStage === s.key ? "#a855f7" : "rgba(255,255,255,0.4)",
-                outline: koStage === s.key ? "1px solid rgba(168,85,247,0.25)" : "none",
-              }}>
-                {s.label}
-              </button>
-            ))}
+          <div style={{ display: "flex", gap: 4, marginBottom: 8, flexWrap: "wrap" }}>
+            {ALL_STAGES.map(s => {
+              const count = matches.filter(m => m.stage === s.key).length;
+              const finished = matches.filter(m => m.stage === s.key && m.is_finished).length;
+              const active = activeStage === s.key;
+              return (
+                <button key={s.key} onClick={() => { setActiveStage(s.key); setActiveGroup(null); }} style={{
+                  padding: "6px 14px", borderRadius: 8, border: "none", cursor: "pointer",
+                  fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.78rem",
+                  background: active ? "rgba(168,85,247,0.15)" : "transparent",
+                  color: active ? "#a855f7" : "rgba(255,255,255,0.4)",
+                  outline: active ? "1px solid rgba(168,85,247,0.25)" : "none",
+                  display: "flex", alignItems: "center", gap: 6,
+                }}>
+                  {s.label}
+                  {count > 0 && (
+                    <span style={{
+                      fontSize: "0.65rem", padding: "1px 5px", borderRadius: 20,
+                      background: finished === count ? "rgba(34,197,94,0.15)" : "rgba(255,255,255,0.08)",
+                      color: finished === count ? "#22c55e" : "rgba(255,255,255,0.4)",
+                    }}>
+                      {finished}/{count}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-            {koMatches.map(match => (
-              <MatchCard
-                key={match.id}
-                match={match}
-                teams={teams}
-                onUpdate={loadData}
-              />
+          {/* Group filter (only for group stage) */}
+          {activeStage === "group" && (
+            <div style={{ display: "flex", gap: 4, marginBottom: 12, flexWrap: "wrap" }}>
+              <button onClick={() => setActiveGroup(null)} style={{
+                padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer",
+                fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-heading)",
+                background: activeGroup === null ? "rgba(212,175,55,0.15)" : "transparent",
+                color: activeGroup === null ? "#D4AF37" : "rgba(255,255,255,0.35)",
+                outline: activeGroup === null ? "1px solid rgba(212,175,55,0.25)" : "none",
+              }}>
+                Todos
+              </button>
+              {GROUPS.map(g => {
+                const gCount = matches.filter(m => m.stage === "group" && m.group_letter === g).length;
+                if (gCount === 0) return null;
+                const gDone = matches.filter(m => m.stage === "group" && m.group_letter === g && m.is_finished).length;
+                const active = activeGroup === g;
+                return (
+                  <button key={g} onClick={() => setActiveGroup(g)} style={{
+                    padding: "4px 10px", borderRadius: 6, border: "none", cursor: "pointer",
+                    fontSize: "0.72rem", fontWeight: 600, fontFamily: "var(--font-heading)",
+                    background: active ? "rgba(212,175,55,0.15)" : "transparent",
+                    color: active ? "#D4AF37" : "rgba(255,255,255,0.35)",
+                    outline: active ? "1px solid rgba(212,175,55,0.25)" : "none",
+                  }}>
+                    Grupo {g}
+                    {gDone === gCount && gCount > 0 && <span style={{ marginLeft: 4, color: "#22c55e" }}>✓</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {visibleMatches.map(match => (
+              <MatchCard key={match.id} match={match} teams={teams} onUpdate={loadData} />
             ))}
-            {koMatches.length === 0 && (
+            {visibleMatches.length === 0 && (
               <div style={{ padding: "48px", textAlign: "center", color: "rgba(255,255,255,0.2)", background: "#0d1225", borderRadius: 16, border: "1px solid rgba(255,255,255,0.07)" }}>
                 No hay partidos en esta fase.
               </div>
@@ -209,10 +261,13 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
     const h = parseInt(homeGoals), a = parseInt(awayGoals);
     if (isNaN(h) || isNaN(a) || h < 0 || a < 0) return;
     setSaving(true);
-    const { error } = await supabase.from("matches").update({
-      home_goals: h, away_goals: a, is_finished: true,
-    }).eq("id", match.id);
-    if (error) alert(error.message);
+    const res = await fetch("/api/admin/save-result", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchId: match.id, homeGoals: h, awayGoals: a }),
+    });
+    const data = await res.json();
+    if (!res.ok) alert(data.error);
     else { setEditResult(false); onUpdate(); }
     setSaving(false);
   };
@@ -230,8 +285,9 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
         </span>
         <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>#{match.match_number}</span>
         <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>{formatMatchDate(match.match_date)}</span>
-        {match.venue && <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.2)" }}>{match.venue}</span>}
-        {isFinished && <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#22c55e", fontWeight: 700 }}>✓ Finalizado</span>}
+        {match.group_letter && <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>Grupo {match.group_letter}</span>}
+        {match.venue && <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", maxWidth: 120 }}>{match.venue}</span>}
+        {isFinished && <span style={{ marginLeft: "auto", fontSize: "0.72rem", color: "#22c55e", fontWeight: 700, flexShrink: 0 }}>✓ Finalizado</span>}
       </div>
 
       <div style={{ padding: "16px" }}>
