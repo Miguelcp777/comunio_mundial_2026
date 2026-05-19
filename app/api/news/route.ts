@@ -1,54 +1,57 @@
 import { NextResponse } from "next/server";
 
+// Force dynamic: Netlify CDN no cachea en base al query param por defecto
+export const dynamic = "force-dynamic";
+
 const SEARCH_TERMS: Record<string, string> = {
-  MEX: "selección mexicana futbol",
-  RSA: "selección Sudáfrica futbol mundial",
-  KOR: "selección Corea del Sur futbol",
-  CZE: "selección República Checa futbol",
-  CAN: "selección canadiense futbol",
-  BIH: "selección Bosnia Herzegovina futbol",
-  QAT: "selección Qatar futbol",
-  SUI: "selección suiza futbol",
-  BRA: "selección brasileña futbol",
-  MAR: "selección Marruecos futbol",
-  HAI: "selección Haití futbol",
-  SCO: "selección Escocia futbol",
-  USA: "selección Estados Unidos futbol USMNT",
-  PAR: "selección paraguaya futbol",
-  AUS: "selección australiana futbol Socceroos",
-  TUR: "selección turca futbol",
-  GER: "selección alemana futbol",
-  CUW: "selección Curazao futbol",
-  CIV: "selección Costa de Marfil futbol",
-  ECU: "selección ecuatoriana futbol",
-  NED: "selección holandesa futbol Países Bajos",
-  JPN: "selección japonesa futbol",
-  SWE: "selección sueca futbol",
-  TUN: "selección tunecina futbol",
-  BEL: "selección belga futbol",
-  EGY: "selección egipcia futbol",
-  IRN: "selección iraní futbol",
-  NZL: "selección Nueva Zelanda futbol",
-  ESP: "selección española futbol",
-  CPV: "selección Cabo Verde futbol",
-  KSA: "selección Arabia Saudí futbol",
-  URU: "selección uruguaya futbol",
-  FRA: "selección francesa futbol",
-  SEN: "selección senegalesa futbol",
-  IRQ: "selección irakí futbol",
-  NOR: "selección noruega futbol",
-  ARG: "selección argentina futbol",
-  ALG: "selección argelina futbol",
-  AUT: "selección austriaca futbol",
-  JOR: "selección Jordania futbol",
-  POR: "selección portuguesa futbol",
-  COD: "selección Congo RD futbol",
-  UZB: "selección Uzbekistán futbol",
-  COL: "selección colombiana futbol",
-  ENG: "selección inglesa futbol",
-  CRO: "selección croata futbol",
-  GHA: "selección Ghana futbol",
-  PAN: "selección panameña futbol",
+  MEX: '"selección mexicana" OR "selección de México" futbol',
+  RSA: '"selección de Sudáfrica" OR "Bafana Bafana" futbol',
+  KOR: '"selección de Corea del Sur" futbol',
+  CZE: '"selección checa" OR "República Checa" futbol',
+  CAN: '"selección canadiense" OR "Canada Soccer" futbol',
+  BIH: '"Bosnia Herzegovina" selección futbol',
+  QAT: '"selección de Qatar" futbol',
+  SUI: '"selección suiza" OR "selección de Suiza" futbol',
+  BRA: '"selección brasileña" OR "selección de Brasil" futbol',
+  MAR: '"selección de Marruecos" futbol',
+  HAI: '"selección de Haití" futbol',
+  SCO: '"selección de Escocia" futbol',
+  USA: '"selección de Estados Unidos" OR "USMNT" futbol',
+  PAR: '"selección paraguaya" OR "selección de Paraguay" futbol',
+  AUS: '"selección australiana" OR "Socceroos" futbol',
+  TUR: '"selección turca" OR "selección de Turquía" futbol',
+  GER: '"selección alemana" OR "selección de Alemania" futbol',
+  CUW: '"selección de Curazao" futbol',
+  CIV: '"Costa de Marfil" selección futbol',
+  ECU: '"selección ecuatoriana" OR "selección de Ecuador" futbol',
+  NED: '"selección holandesa" OR "Países Bajos" selección futbol',
+  JPN: '"selección japonesa" OR "selección de Japón" futbol',
+  SWE: '"selección sueca" OR "selección de Suecia" futbol',
+  TUN: '"selección tunecina" OR "selección de Túnez" futbol',
+  BEL: '"selección belga" OR "selección de Bélgica" futbol',
+  EGY: '"selección egipcia" OR "selección de Egipto" futbol',
+  IRN: '"selección iraní" OR "selección de Irán" futbol',
+  NZL: '"Nueva Zelanda" selección futbol',
+  ESP: '"selección española" futbol',
+  CPV: '"Cabo Verde" selección futbol',
+  KSA: '"Arabia Saudí" OR "Arabia Saudita" selección futbol',
+  URU: '"selección uruguaya" OR "selección de Uruguay" futbol',
+  FRA: '"selección francesa" OR "selección de Francia" futbol',
+  SEN: '"selección de Senegal" futbol',
+  IRQ: '"selección de Irak" futbol',
+  NOR: '"selección noruega" OR "selección de Noruega" futbol',
+  ARG: '"selección argentina" futbol',
+  ALG: '"selección argelina" OR "selección de Argelia" futbol',
+  AUT: '"selección austriaca" OR "selección de Austria" futbol',
+  JOR: '"selección de Jordania" futbol',
+  POR: '"selección portuguesa" OR "selección de Portugal" futbol',
+  COD: '"Congo" selección futbol "República Democrática"',
+  UZB: '"selección de Uzbekistán" futbol',
+  COL: '"selección colombiana" OR "selección de Colombia" futbol',
+  ENG: '"selección inglesa" OR "selección de Inglaterra" futbol',
+  CRO: '"selección croata" OR "selección de Croacia" futbol',
+  GHA: '"selección de Ghana" futbol',
+  PAN: '"selección panameña" OR "selección de Panamá" futbol',
 };
 
 interface NewsItem {
@@ -59,9 +62,23 @@ interface NewsItem {
   description: string;
 }
 
+// In-memory cache por código: evita llamadas repetidas durante el mismo ciclo
+const memCache = new Map<string, { items: NewsItem[]; ts: number }>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 min
+
 function extractTag(xml: string, tag: string): string {
   const re = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i");
   return xml.match(re)?.[1]?.trim() ?? "";
+}
+
+function decodeEntities(s: string): string {
+  return s
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&apos;/g, "'");
 }
 
 function parseRSS(xml: string): NewsItem[] {
@@ -70,20 +87,24 @@ function parseRSS(xml: string): NewsItem[] {
   let m: RegExpExecArray | null;
   while ((m = itemRe.exec(xml)) !== null) {
     const block = m[1];
-    const title = extractTag(block, "title").replace(/&amp;/g, "&").replace(/&quot;/g, '"').replace(/&#39;/g, "'");
-    const rawLink = extractTag(block, "link");
-    // Google News embeds real link as second <link> (after channel); pick the item one
-    const link = rawLink || block.match(/<link\/>(.*?)\n/)?.[1]?.trim() || "";
+
+    const rawTitle = extractTag(block, "title");
+    // Google News appends " - Source" at the end of the title — strip it
+    const title = decodeEntities(rawTitle.replace(/\s*-\s*[^-]+$/, "").trim());
+
+    // In Google News RSS the <link> tag is self-closing followed by the URL as text
+    // Standard format: <link>https://...</link>  OR  <link/>\nhttps://...
+    let link = extractTag(block, "link");
+    if (!link) {
+      const m2 = block.match(/<link\s*\/>\s*(https?:\/\/[^\s<]+)/);
+      link = m2?.[1]?.trim() ?? "";
+    }
+
     const pubDate = extractTag(block, "pubDate");
-    const source = extractTag(block, "source");
-    const description = extractTag(block, "description")
-      .replace(/<[^>]+>/g, "")
-      .replace(/&amp;/g, "&")
-      .replace(/&quot;/g, '"')
-      .replace(/&#39;/g, "'")
-      .replace(/&lt;/g, "<")
-      .replace(/&gt;/g, ">")
-      .slice(0, 200);
+    const source = decodeEntities(extractTag(block, "source"));
+    const description = decodeEntities(
+      extractTag(block, "description").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim()
+    ).slice(0, 220);
 
     if (title && link) items.push({ title, link, pubDate, source, description });
   }
@@ -92,28 +113,40 @@ function parseRSS(xml: string): NewsItem[] {
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
-  const code = (searchParams.get("code") ?? "").toUpperCase();
+  const code = (searchParams.get("code") ?? "").toUpperCase().trim();
 
   if (!code) return NextResponse.json({ error: "code requerido" }, { status: 400 });
 
+  // Serve from in-memory cache if fresh
+  const cached = memCache.get(code);
+  if (cached && Date.now() - cached.ts < CACHE_TTL) {
+    return NextResponse.json({ code, items: cached.items });
+  }
+
   const term = SEARCH_TERMS[code] ?? `selección ${code} futbol mundial 2026`;
-  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(term)}&hl=es&gl=ES&ceid=ES:es`;
+  const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(term)}&hl=es&gl=ES&ceid=ES:es&num=20`;
 
   try {
     const res = await fetch(rssUrl, {
-      next: { revalidate: 900 }, // cache 15 min
+      cache: "no-store", // fetch siempre fresco; el caché lo gestionamos nosotros
       headers: { "User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)" },
     });
 
-    if (!res.ok) throw new Error(`RSS fetch failed: ${res.status}`);
+    if (!res.ok) throw new Error(`RSS ${res.status}`);
 
     const xml = await res.text();
     const items = parseRSS(xml).slice(0, 10);
 
+    memCache.set(code, { items, ts: Date.now() });
+
     return NextResponse.json({ code, items }, {
-      headers: { "Cache-Control": "public, s-maxage=900, stale-while-revalidate=300" },
+      headers: {
+        // Cache-Control privado: el navegador cachea, Netlify CDN no
+        "Cache-Control": "private, max-age=900",
+        "X-News-Code": code,
+      },
     });
-  } catch (err) {
-    return NextResponse.json({ error: "No se pudieron cargar las noticias", items: [] }, { status: 200 });
+  } catch {
+    return NextResponse.json({ code, error: "No se pudieron cargar las noticias", items: [] });
   }
 }
