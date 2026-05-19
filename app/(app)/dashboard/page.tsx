@@ -487,6 +487,12 @@ export default function DashboardPage() {
 
   const predCount = filteredMatches.filter((m) => predictions[m.id]).length;
 
+  const todayStr = new Date().toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }); // "YYYY-MM-DD"
+  const todayMatches = matches.filter((m) => {
+    if (!m.match_date) return false;
+    return new Date(m.match_date).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" }) === todayStr;
+  });
+
   if (loading) {
     return (
       <div style={{ padding: "24px 16px", maxWidth: 960, margin: "0 auto" }}>
@@ -546,6 +552,166 @@ export default function DashboardPage() {
             }}
             aria-label="Cerrar aviso"
           >✕</button>
+        </div>
+      )}
+
+      {/* ── Los partidos de hoy ── */}
+      {todayMatches.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem", color: "#D4AF37", display: "flex", alignItems: "center", gap: 8 }}>
+              <span style={{
+                width: 8, height: 8, borderRadius: "50%", background: "#22c55e",
+                boxShadow: "0 0 8px rgba(34,197,94,0.8)", display: "inline-block", flexShrink: 0,
+              }} />
+              Los partidos de hoy
+            </h2>
+            <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)" }}>
+              {new Date().toLocaleDateString("es-ES", { weekday: "long", day: "numeric", month: "long", timeZone: "Europe/Madrid" })}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {todayMatches.map((match) => {
+              const locked  = isPredictionLocked(match.match_date);
+              const pred    = predictions[match.id];
+              const local   = localPredictions[match.id] || {
+                home: pred?.predicted_home_goals?.toString() ?? "",
+                away: pred?.predicted_away_goals?.toString() ?? "",
+              };
+              const saving  = savingMatch === match.id;
+              const hasTeams = match.home_team && match.away_team;
+              const canSave  = !locked && hasTeams && !match.is_finished;
+
+              return (
+                <div key={match.id} style={{
+                  background: "#0d1225",
+                  border: "1px solid rgba(212,175,55,0.18)",
+                  borderRadius: 14, overflow: "hidden",
+                  boxShadow: "0 0 20px rgba(212,175,55,0.04)",
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "12px 14px", flexWrap: "wrap" }}>
+
+                    {/* Time + stage */}
+                    <div style={{ flexShrink: 0, minWidth: 52 }}>
+                      <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.95rem", color: "#D4AF37", lineHeight: 1 }}>
+                        {match.match_date
+                          ? new Date(match.match_date).toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit", timeZone: "Europe/Madrid" })
+                          : "—"}
+                      </div>
+                      <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.25)", marginTop: 2, textTransform: "uppercase", letterSpacing: "0.04em" }}>
+                        {formatStage(match.stage)}
+                      </div>
+                    </div>
+
+                    <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.07)", flexShrink: 0 }} />
+
+                    {/* Teams + score */}
+                    {hasTeams ? (
+                      <div style={{ flex: 1, minWidth: 0, display: "flex", alignItems: "center", gap: 8 }}>
+                        {/* Home */}
+                        <div
+                          onClick={() => setNewsTeam({ code: match.home_team!.code, name: getTeamName(match.home_team!.code, match.home_team!.name) })}
+                          title="Ver noticias"
+                          style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, cursor: "pointer" }}
+                        >
+                          <Image src={getFlagUrl(match.home_team!.code, "w80")} alt={getTeamName(match.home_team!.code, match.home_team!.name)}
+                            width={22} height={15} style={{ borderRadius: 2, flexShrink: 0 }} />
+                          <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                            {getTeamName(match.home_team!.code, match.home_team!.name)}
+                          </span>
+                        </div>
+
+                        {/* Score / inputs */}
+                        <div style={{ display: "flex", alignItems: "center", gap: 4, flexShrink: 0 }}>
+                          {match.is_finished ? (
+                            <>
+                              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1.1rem", color: "#D4AF37", minWidth: 22, textAlign: "center" }}>{match.home_goals}</span>
+                              <span style={{ color: "rgba(255,255,255,0.25)", fontSize: "0.85rem" }}>—</span>
+                              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1.1rem", color: "#D4AF37", minWidth: 22, textAlign: "center" }}>{match.away_goals}</span>
+                            </>
+                          ) : (
+                            <>
+                              <input type="number" min="0" max="20" disabled={locked} value={local.home}
+                                onChange={(e) => setLocalPredictions(prev => ({ ...prev, [match.id]: { ...local, home: e.target.value } }))}
+                                style={{ width: 34, height: 34, borderRadius: 8, border: `2px solid ${local.home !== "" ? "rgba(212,175,55,0.4)" : "rgba(255,255,255,0.1)"}`, background: "rgba(255,255,255,0.05)", color: "white", fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem", textAlign: "center", outline: "none", opacity: locked ? 0.4 : 1, cursor: locked ? "not-allowed" : "text" }}
+                                placeholder="—" />
+                              <span style={{ color: "rgba(255,255,255,0.2)", fontSize: "0.85rem" }}>—</span>
+                              <input type="number" min="0" max="20" disabled={locked} value={local.away}
+                                onChange={(e) => setLocalPredictions(prev => ({ ...prev, [match.id]: { ...local, away: e.target.value } }))}
+                                style={{ width: 34, height: 34, borderRadius: 8, border: `2px solid ${local.away !== "" ? "rgba(212,175,55,0.4)" : "rgba(255,255,255,0.1)"}`, background: "rgba(255,255,255,0.05)", color: "white", fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem", textAlign: "center", outline: "none", opacity: locked ? 0.4 : 1, cursor: locked ? "not-allowed" : "text" }}
+                                placeholder="—" />
+                            </>
+                          )}
+                        </div>
+
+                        {/* Away */}
+                        <div
+                          onClick={() => setNewsTeam({ code: match.away_team!.code, name: getTeamName(match.away_team!.code, match.away_team!.name) })}
+                          title="Ver noticias"
+                          style={{ display: "flex", alignItems: "center", gap: 6, flex: 1, minWidth: 0, justifyContent: "flex-end", cursor: "pointer" }}
+                        >
+                          <span style={{ fontSize: "0.82rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
+                            {getTeamName(match.away_team!.code, match.away_team!.name)}
+                          </span>
+                          <Image src={getFlagUrl(match.away_team!.code, "w80")} alt={getTeamName(match.away_team!.code, match.away_team!.name)}
+                            width={22} height={15} style={{ borderRadius: 2, flexShrink: 0 }} />
+                        </div>
+                      </div>
+                    ) : (
+                      <div style={{ flex: 1, textAlign: "center", fontSize: "0.8rem", color: "rgba(255,255,255,0.2)" }}>
+                        Equipos por determinar
+                      </div>
+                    )}
+
+                    <div style={{ width: 1, height: 32, background: "rgba(255,255,255,0.07)", flexShrink: 0 }} />
+
+                    {/* Actions */}
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
+                      {pred && pred.points_earned !== null && (
+                        <span style={{ background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#070b1e", fontFamily: "var(--font-heading)", fontWeight: 800, padding: "3px 9px", borderRadius: 16, fontSize: "0.75rem" }}>
+                          {pred.points_earned} pts
+                        </span>
+                      )}
+                      {pred && pred.points_earned === null && !match.is_finished && !canSave && (
+                        <span style={{ fontSize: "0.7rem", color: "#22c55e", fontWeight: 700 }}>✓</span>
+                      )}
+                      {canSave && (
+                        <button onClick={() => savePrediction(match.id)}
+                          disabled={saving || !local.home || !local.away}
+                          style={{ background: "linear-gradient(135deg,#D4AF37,#b8941e)", color: "#070b1e", fontFamily: "var(--font-heading)", fontWeight: 800, padding: "5px 12px", borderRadius: 7, border: "none", cursor: "pointer", fontSize: "0.75rem", opacity: (saving || !local.home || !local.away) ? 0.4 : 1 }}>
+                          {saving ? "..." : pred ? "✓ Actualizar" : "Guardar"}
+                        </button>
+                      )}
+                      {locked && hasTeams && (
+                        <button
+                          onClick={() => setViewPredictions({
+                            id: match.id,
+                            homeTeam: getTeamName(match.home_team!.code, match.home_team!.name),
+                            awayTeam: getTeamName(match.away_team!.code, match.away_team!.name),
+                            homeCode: match.home_team!.code,
+                            awayCode: match.away_team!.code,
+                            isFinished: match.is_finished,
+                          })}
+                          style={{ background: "rgba(168,85,247,0.12)", border: "1px solid rgba(168,85,247,0.25)", color: "#a855f7", fontFamily: "var(--font-heading)", fontWeight: 800, padding: "5px 10px", borderRadius: 7, cursor: "pointer", fontSize: "0.72rem" }}
+                        >
+                          👥
+                        </button>
+                      )}
+                      {match.is_finished && (
+                        <span style={{ fontSize: "0.68rem", color: "#22c55e", fontWeight: 700 }}>✓ Final</span>
+                      )}
+                      {locked && !match.is_finished && (
+                        <span style={{ fontSize: "0.68rem", color: "rgba(255,255,255,0.25)" }}>🔒</span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          <div style={{ height: 1, background: "rgba(212,175,55,0.1)", margin: "20px 0 4px" }} />
         </div>
       )}
 
