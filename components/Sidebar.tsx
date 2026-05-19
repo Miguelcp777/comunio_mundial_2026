@@ -36,10 +36,11 @@ export default function Sidebar() {
   };
 
   const navLinks = [
-    { href: "/dashboard", label: "Partidos", icon: "⚽" },
-    { href: "/torneo", label: "Predicción Torneo", icon: "🏆" },
-    { href: "/leaderboard", label: "Clasificación", icon: "📊" },
-    { href: "/profile", label: "Mi Perfil", icon: "👤" },
+    { href: "/dashboard",   label: "Partidos",          icon: "⚽" },
+    { href: "/torneo",      label: "Predicción Torneo", icon: "🏆" },
+    { href: "/leaderboard", label: "Clasificación",     icon: "📊" },
+    { href: "/info",        label: "Cómo funciona",     icon: "ℹ️" },
+    { href: "/profile",     label: "Mi Perfil",         icon: "👤" },
   ];
 
   if (profile?.is_admin) {
