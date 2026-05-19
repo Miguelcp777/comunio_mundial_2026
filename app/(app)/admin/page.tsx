@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl, formatMatchDate, formatStage } from "@/lib/utils";
+import { getFlagUrl, formatMatchDate, formatStage, getTeamName } from "@/lib/utils";
 import type { Team, Match, Profile } from "@/lib/types/database";
 import Image from "next/image";
 
@@ -296,11 +296,11 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (isFinished && !editResult) ? 0 : 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
               {match.home_team && (
-                <Image src={getFlagUrl(match.home_team.code, "w80")} alt={match.home_team.name}
+                <Image src={getFlagUrl(match.home_team.code, "w80")} alt={getTeamName(match.home_team.code, match.home_team.name)}
                   width={24} height={16} style={{ borderRadius: 3, flexShrink: 0 }} />
               )}
               <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                {match.home_team?.name ?? "Por determinar"}
+                {match.home_team ? getTeamName(match.home_team.code, match.home_team.name) : "Por determinar"}
               </span>
             </div>
 
@@ -320,10 +320,10 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
 
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
               <span style={{ fontWeight: 700, fontSize: "0.875rem", color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
-                {match.away_team?.name ?? "Por determinar"}
+                {match.away_team ? getTeamName(match.away_team.code, match.away_team.name) : "Por determinar"}
               </span>
               {match.away_team && (
-                <Image src={getFlagUrl(match.away_team.code, "w80")} alt={match.away_team.name}
+                <Image src={getFlagUrl(match.away_team.code, "w80")} alt={getTeamName(match.away_team.code, match.away_team.name)}
                   width={24} height={16} style={{ borderRadius: 3, flexShrink: 0 }} />
               )}
             </div>
@@ -336,12 +336,12 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
               <select value={homeId} onChange={e => setHomeId(e.target.value)}
                 style={{ padding: "10px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark" }}>
                 <option value="" style={{ background: "#1a2035", color: "rgba(255,255,255,0.5)" }}>Equipo local...</option>
-                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{t.name}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{getTeamName(t.code, t.name)}</option>)}
               </select>
               <select value={awayId} onChange={e => setAwayId(e.target.value)}
                 style={{ padding: "10px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark" }}>
                 <option value="" style={{ background: "#1a2035", color: "rgba(255,255,255,0.5)" }}>Equipo visitante...</option>
-                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{t.name}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>{getTeamName(t.code, t.name)}</option>)}
               </select>
             </div>
           </div>
@@ -572,7 +572,7 @@ function SyncPanel() {
                   padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.04)",
                 }}>
                   <div style={{ fontSize: "0.83rem", color: "rgba(255,255,255,0.7)" }}>
-                    {m.home_team?.name ?? "?"} vs {m.away_team?.name ?? "?"}
+                    {m.home_team ? getTeamName(m.home_team.code, m.home_team.name) : "?"} vs {m.away_team ? getTeamName(m.away_team.code, m.away_team.name) : "?"}
                   </div>
                   <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.9rem", color: "#D4AF37", flexShrink: 0 }}>
                     {m.home_goals} — {m.away_goals}

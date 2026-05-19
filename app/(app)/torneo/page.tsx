@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl } from "@/lib/utils";
+import { getFlagUrl, getTeamName } from "@/lib/utils";
 import type { Team } from "@/lib/types/database";
 import Image from "next/image";
 
@@ -182,8 +182,8 @@ export default function TorneoPage() {
                   <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.95rem", color: "white" }}>{label}</p>
                   {selected && (
                     <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 4 }}>
-                      <Image src={getFlagUrl(selected.code, "w80")} alt={selected.name} width={24} height={16} style={{ borderRadius: 3 }} />
-                      <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "#D4AF37" }}>{selected.name}</span>
+                      <Image src={getFlagUrl(selected.code, "w80")} alt={getTeamName(selected.code, selected.name)} width={24} height={16} style={{ borderRadius: 3 }} />
+                      <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "#D4AF37" }}>{getTeamName(selected.code, selected.name)}</span>
                     </div>
                   )}
                 </div>
@@ -205,7 +205,7 @@ export default function TorneoPage() {
                 </option>
                 {available.map(t => (
                   <option key={t.id} value={t.id} style={{ background: "#1a2035", color: "white" }}>
-                    {t.name} · Grupo {t.group_letter}
+                    {getTeamName(t.code, t.name)} · Grupo {t.group_letter}
                   </option>
                 ))}
               </select>

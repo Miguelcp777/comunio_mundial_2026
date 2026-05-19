@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl, formatStage } from "@/lib/utils";
+import { getFlagUrl, formatStage, getTeamName } from "@/lib/utils";
 import type { Profile, Team } from "@/lib/types/database";
 import Image from "next/image";
 
@@ -392,10 +392,10 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
                       <div style={{ fontSize: "1.1rem", marginBottom: 6 }}>{item.emoji}</div>
                       {item.team ? (
                         <>
-                          <Image src={getFlagUrl(item.team.code, "w80")} alt={item.team.name}
+                          <Image src={getFlagUrl(item.team.code, "w80")} alt={getTeamName(item.team.code, item.team.name)}
                             width={28} height={18} style={{ borderRadius: 3, margin: "0 auto 4px", display: "block" }} />
                           <div style={{ fontSize: "0.7rem", fontWeight: 700, color: "rgba(255,255,255,0.75)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                            {item.team.name}
+                            {getTeamName(item.team.code, item.team.name)}
                           </div>
                         </>
                       ) : (
@@ -425,19 +425,19 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
                         {m.home_team && (
-                          <Image src={getFlagUrl(m.home_team.code, "w40")} alt={m.home_team.name}
+                          <Image src={getFlagUrl(m.home_team.code, "w40")} alt={getTeamName(m.home_team.code, m.home_team.name)}
                             width={16} height={11} style={{ borderRadius: 2, flexShrink: 0 }} />
                         )}
                         <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {m.home_team?.name ?? `Partido #${m.match_number}`}
+                          {m.home_team ? getTeamName(m.home_team.code, m.home_team.name) : `Partido #${m.match_number}`}
                         </span>
                         <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.3)", flexShrink: 0 }}>vs</span>
                         {m.away_team && (
-                          <Image src={getFlagUrl(m.away_team.code, "w40")} alt={m.away_team.name}
+                          <Image src={getFlagUrl(m.away_team.code, "w40")} alt={getTeamName(m.away_team.code, m.away_team.name)}
                             width={16} height={11} style={{ borderRadius: 2, flexShrink: 0 }} />
                         )}
                         <span style={{ fontSize: "0.78rem", fontWeight: 700, color: "rgba(255,255,255,0.8)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                          {m.away_team?.name ?? ""}
+                          {m.away_team ? getTeamName(m.away_team.code, m.away_team.name) : ""}
                         </span>
                       </div>
                       <div style={{ display: "flex", alignItems: "center", gap: 8 }}>

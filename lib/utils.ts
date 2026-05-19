@@ -1,3 +1,23 @@
+// FIFA country code → Spanish team name
+const codeToSpanishName: Record<string, string> = {
+  MEX: "México",       RSA: "Sudáfrica",    KOR: "Corea del Sur",  CZE: "República Checa",
+  CAN: "Canadá",       BIH: "Bosnia-Herz.", QAT: "Catar",          SUI: "Suiza",
+  BRA: "Brasil",       MAR: "Marruecos",    HAI: "Haití",          SCO: "Escocia",
+  USA: "EE. UU.",      PAR: "Paraguay",     AUS: "Australia",      TUR: "Turquía",
+  GER: "Alemania",     CUW: "Curazao",      CIV: "Costa de Marfil",ECU: "Ecuador",
+  NED: "Países Bajos", JPN: "Japón",        SWE: "Suecia",         TUN: "Túnez",
+  BEL: "Bélgica",      EGY: "Egipto",       IRN: "Irán",           NZL: "Nueva Zelanda",
+  ESP: "España",       CPV: "Cabo Verde",   KSA: "Arabia Saudí",   URU: "Uruguay",
+  FRA: "Francia",      SEN: "Senegal",      IRQ: "Irak",           NOR: "Noruega",
+  ARG: "Argentina",    ALG: "Argelia",      AUT: "Austria",        JOR: "Jordania",
+  POR: "Portugal",     COD: "R.D. Congo",   UZB: "Uzbekistán",     COL: "Colombia",
+  ENG: "Inglaterra",   CRO: "Croacia",      GHA: "Ghana",          PAN: "Panamá",
+};
+
+export function getTeamName(fifaCode: string, fallback?: string): string {
+  return codeToSpanishName[fifaCode] ?? fallback ?? fifaCode;
+}
+
 // FIFA country code → flag emoji mapping
 // Using country-code.js style mapping for flag emojis
 const codeToCountry: Record<string, string> = {

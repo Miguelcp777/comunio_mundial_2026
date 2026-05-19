@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl } from "@/lib/utils";
+import { getFlagUrl, getTeamName } from "@/lib/utils";
 import type { Team } from "@/lib/types/database";
 import Image from "next/image";
 
@@ -137,7 +137,7 @@ export default function OnboardingPage() {
           <option value="">Seleccionar equipo...</option>
           {available.map((team) => (
             <option key={team.id} value={team.id}>
-              {team.name} (Grupo {team.group_letter})
+              {getTeamName(team.code, team.name)} (Grupo {team.group_letter})
             </option>
           ))}
         </select>

@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
-import { getFlagUrl, formatMatchDate, formatStage, isPredictionLocked } from "@/lib/utils";
+import { getFlagUrl, formatMatchDate, formatStage, isPredictionLocked, getTeamName } from "@/lib/utils";
 import type { Team, Match, MatchPrediction } from "@/lib/types/database";
 import Image from "next/image";
 
@@ -264,10 +264,10 @@ export default function DashboardPage() {
                   <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                     {/* Home */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
-                      <Image src={getFlagUrl(match.home_team!.code, "w80")} alt={match.home_team!.name}
+                      <Image src={getFlagUrl(match.home_team!.code, "w80")} alt={getTeamName(match.home_team!.code, match.home_team!.name)}
                         width={26} height={17} style={{ borderRadius: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.4)", flexShrink: 0 }} />
                       <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                        {match.home_team!.name}
+                        {getTeamName(match.home_team!.code, match.home_team!.name)}
                       </span>
                     </div>
 
@@ -311,9 +311,9 @@ export default function DashboardPage() {
                     {/* Away */}
                     <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0, justifyContent: "flex-end" }}>
                       <span style={{ fontSize: "0.87rem", fontWeight: 700, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", textAlign: "right" }}>
-                        {match.away_team!.name}
+                        {getTeamName(match.away_team!.code, match.away_team!.name)}
                       </span>
-                      <Image src={getFlagUrl(match.away_team!.code, "w80")} alt={match.away_team!.name}
+                      <Image src={getFlagUrl(match.away_team!.code, "w80")} alt={getTeamName(match.away_team!.code, match.away_team!.name)}
                         width={26} height={17} style={{ borderRadius: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.4)", flexShrink: 0 }} />
                     </div>
                   </div>
