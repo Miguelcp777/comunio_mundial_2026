@@ -7,6 +7,208 @@ import { getFlagUrl, formatMatchDate, formatStage, isPredictionLocked, getTeamNa
 import type { Team, Match, MatchPrediction } from "@/lib/types/database";
 import Image from "next/image";
 
+/* ─── Predictions modal ─── */
+interface PredItem {
+  display_name: string;
+  predicted_home_goals: number;
+  predicted_away_goals: number;
+  points_earned: number | null;
+  is_me: boolean;
+}
+
+function PredictionsModal({
+  match,
+  onClose,
+}: {
+  match: { id: number; homeTeam: string; awayTeam: string; homeCode: string; awayCode: string; isFinished: boolean };
+  onClose: () => void;
+}) {
+  const [items, setItems] = useState<PredItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setLoading(true); setError(null); setItems([]);
+    fetch(`/api/predictions?matchId=${match.id}`)
+      .then(r => r.json())
+      .then(d => {
+        if (d.error) { setError(d.error); }
+        else { setItems(d.items ?? []); }
+      })
+      .catch(() => setError("No se pudieron cargar los pronósticos."))
+      .finally(() => setLoading(false));
+  }, [match.id]);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) onClose(); };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [onClose]);
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
+    document.addEventListener("keydown", handler);
+    return () => document.removeEventListener("keydown", handler);
+  }, [onClose]);
+
+  const totalWith = items.length;
+  const perfect = items.filter(p => p.points_earned === 5).length;
+
+  return (
+    <div style={{
+      position: "fixed", inset: 0, zIndex: 1000,
+      background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)",
+      display: "flex", alignItems: "center", justifyContent: "center",
+      padding: "16px",
+    }}>
+      <div ref={ref} style={{
+        width: "100%", maxWidth: 480, maxHeight: "85vh",
+        background: "#0d1225", borderRadius: 20,
+        border: "1px solid rgba(255,255,255,0.1)",
+        boxShadow: "0 24px 80px rgba(0,0,0,0.6)",
+        display: "flex", flexDirection: "column", overflow: "hidden",
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: "16px 18px", borderBottom: "1px solid rgba(255,255,255,0.07)",
+          flexShrink: 0,
+        }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+              <Image src={getFlagUrl(match.homeCode, "w80")} alt={match.homeTeam} width={24} height={16}
+                style={{ borderRadius: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.4)" }} />
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.9rem", color: "white" }}>
+                {match.homeTeam}
+              </span>
+              <span style={{ color: "rgba(255,255,255,0.3)", fontSize: "0.75rem" }}>vs</span>
+              <span style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.9rem", color: "white" }}>
+                {match.awayTeam}
+              </span>
+              <Image src={getFlagUrl(match.awayCode, "w80")} alt={match.awayTeam} width={24} height={16}
+                style={{ borderRadius: 3, boxShadow: "0 1px 4px rgba(0,0,0,0.4)" }} />
+            </div>
+            <button onClick={onClose} style={{
+              width: 30, height: 30, borderRadius: 8, border: "1px solid rgba(255,255,255,0.1)",
+              background: "rgba(255,255,255,0.05)", color: "rgba(255,255,255,0.5)",
+              cursor: "pointer", fontSize: "0.85rem", flexShrink: 0,
+              display: "flex", alignItems: "center", justifyContent: "center",
+            }}>✕</button>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <span style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.35)" }}>
+              👥 {totalWith} pronóstico{totalWith !== 1 ? "s" : ""}
+            </span>
+            {match.isFinished && perfect > 0 && (
+              <span style={{ fontSize: "0.72rem", color: "#D4AF37" }}>
+                🎯 {perfect} pleno{perfect !== 1 ? "s" : ""}
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Body */}
+        <div style={{ overflowY: "auto", flex: 1, padding: "10px 14px" }}>
+          {loading && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              {[1,2,3,4,5].map(i => (
+                <div key={i} className="skeleton" style={{ height: 48, borderRadius: 10 }} />
+              ))}
+            </div>
+          )}
+
+          {!loading && error && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(239,68,68,0.7)", fontSize: "0.85rem" }}>
+              {error}
+            </div>
+          )}
+
+          {!loading && !error && items.length === 0 && (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "rgba(255,255,255,0.25)", fontSize: "0.85rem" }}>
+              Nadie ha pronosticado este partido.
+            </div>
+          )}
+
+          {!loading && !error && items.map((item, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: 12,
+              padding: "10px 12px", borderRadius: 10, marginBottom: 6,
+              background: item.is_me ? "rgba(212,175,55,0.08)" : "rgba(255,255,255,0.02)",
+              border: `1px solid ${item.is_me ? "rgba(212,175,55,0.2)" : "rgba(255,255,255,0.05)"}`,
+            }}>
+              {/* Rank */}
+              <span style={{
+                flexShrink: 0, width: 22, textAlign: "center",
+                fontFamily: "var(--font-heading)", fontWeight: 900,
+                fontSize: "0.75rem",
+                color: match.isFinished && item.points_earned !== null
+                  ? (i === 0 ? "#D4AF37" : i === 1 ? "#94a3b8" : i === 2 ? "#cd7c3a" : "rgba(255,255,255,0.3)")
+                  : "rgba(255,255,255,0.25)",
+              }}>
+                {match.isFinished && item.points_earned !== null
+                  ? (i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : `${i + 1}`)
+                  : `${i + 1}`}
+              </span>
+
+              {/* Name */}
+              <span style={{
+                flex: 1, fontSize: "0.85rem", fontWeight: item.is_me ? 700 : 400,
+                color: item.is_me ? "#D4AF37" : "rgba(255,255,255,0.75)",
+                overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {item.display_name}
+                {item.is_me && <span style={{ fontSize: "0.65rem", marginLeft: 6, opacity: 0.6 }}>(tú)</span>}
+              </span>
+
+              {/* Prediction score */}
+              <span style={{
+                fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1rem",
+                color: "white", flexShrink: 0,
+              }}>
+                {item.predicted_home_goals} — {item.predicted_away_goals}
+              </span>
+
+              {/* Points badge */}
+              {item.points_earned !== null ? (
+                <span style={{
+                  flexShrink: 0, minWidth: 46, textAlign: "center",
+                  background: item.points_earned === 5
+                    ? "linear-gradient(135deg,#D4AF37,#b8941e)"
+                    : item.points_earned >= 3
+                    ? "rgba(34,197,94,0.15)"
+                    : "rgba(255,255,255,0.06)",
+                  color: item.points_earned === 5
+                    ? "#070b1e"
+                    : item.points_earned >= 3
+                    ? "#22c55e"
+                    : "rgba(255,255,255,0.4)",
+                  border: item.points_earned === 5 ? "none" : `1px solid ${item.points_earned >= 3 ? "rgba(34,197,94,0.3)" : "rgba(255,255,255,0.08)"}`,
+                  fontFamily: "var(--font-heading)", fontWeight: 800,
+                  padding: "3px 8px", borderRadius: 8, fontSize: "0.78rem",
+                }}>
+                  {item.points_earned} pts
+                </span>
+              ) : (
+                <span style={{ flexShrink: 0, minWidth: 46, textAlign: "center", fontSize: "0.68rem", color: "rgba(255,255,255,0.2)" }}>
+                  —
+                </span>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Footer */}
+        <div style={{
+          padding: "10px 18px", borderTop: "1px solid rgba(255,255,255,0.06)",
+          fontSize: "0.65rem", color: "rgba(255,255,255,0.2)", textAlign: "center", flexShrink: 0,
+        }}>
+          Los pronósticos se revelan al cerrar las apuestas (15 min antes del partido)
+        </div>
+      </div>
+    </div>
+  );
+}
+
 /* ─── News modal ─── */
 interface NewsItem { title: string; link: string; pubDate: string; source: string; description: string; }
 
@@ -176,6 +378,9 @@ export default function DashboardPage() {
   const [localPredictions, setLocalPredictions] = useState<Record<number, { home: string; away: string }>>({});
   const [newsTeam, setNewsTeam] = useState<{ code: string; name: string } | null>(null);
   const [newsBannerDismissed, setNewsBannerDismissed] = useState(false);
+  const [viewPredictions, setViewPredictions] = useState<{
+    id: number; homeTeam: string; awayTeam: string; homeCode: string; awayCode: string; isFinished: boolean;
+  } | null>(null);
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -281,8 +486,11 @@ export default function DashboardPage() {
   return (
     <div style={{ padding: "24px 16px", maxWidth: 960, margin: "0 auto" }}>
 
-      {/* News modal */}
+      {/* Modals */}
       {newsTeam && <NewsModal team={newsTeam} onClose={() => setNewsTeam(null)} />}
+      {viewPredictions && (
+        <PredictionsModal match={viewPredictions} onClose={() => setViewPredictions(null)} />
+      )}
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", marginBottom: 20 }}>
@@ -525,6 +733,28 @@ export default function DashboardPage() {
                         transition: "opacity 0.15s",
                       }}>
                       {saving ? "..." : hasPred ? "Actualizar" : "Guardar"}
+                    </button>
+                  )}
+                  {locked && hasTeams && (
+                    <button
+                      onClick={() => setViewPredictions({
+                        id: match.id,
+                        homeTeam: getTeamName(match.home_team!.code, match.home_team!.name),
+                        awayTeam: getTeamName(match.away_team!.code, match.away_team!.name),
+                        homeCode: match.home_team!.code,
+                        awayCode: match.away_team!.code,
+                        isFinished: match.is_finished,
+                      })}
+                      style={{
+                        background: "rgba(168,85,247,0.12)",
+                        border: "1px solid rgba(168,85,247,0.25)",
+                        color: "#a855f7", fontFamily: "var(--font-heading)", fontWeight: 800,
+                        padding: "6px 12px", borderRadius: 8, cursor: "pointer",
+                        fontSize: "0.75rem", transition: "all 0.15s",
+                        display: "flex", alignItems: "center", gap: 5,
+                      }}
+                    >
+                      👥 Pronósticos
                     </button>
                   )}
                 </div>
