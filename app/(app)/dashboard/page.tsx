@@ -174,6 +174,7 @@ export default function DashboardPage() {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
   const [localPredictions, setLocalPredictions] = useState<Record<number, { home: string; away: string }>>({});
   const [newsTeam, setNewsTeam] = useState<{ code: string; name: string } | null>(null);
+  const [newsBannerDismissed, setNewsBannerDismissed] = useState(false);
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
@@ -301,6 +302,28 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* News tip banner */}
+      {!newsBannerDismissed && (
+        <div style={{
+          display: "flex", alignItems: "center", gap: 12,
+          padding: "10px 14px", borderRadius: 12, marginBottom: 16,
+          background: "rgba(168,85,247,0.07)", border: "1px solid rgba(168,85,247,0.2)",
+        }}>
+          <span style={{ fontSize: "1.1rem", flexShrink: 0 }}>📰</span>
+          <p style={{ flex: 1, fontSize: "0.78rem", color: "rgba(255,255,255,0.55)", lineHeight: 1.4, margin: 0 }}>
+            <strong style={{ color: "rgba(168,85,247,0.9)" }}>Consejo:</strong> pulsa sobre el nombre o la bandera de cualquier equipo para ver sus últimas noticias y hacer mejores predicciones.
+          </p>
+          <button
+            onClick={() => setNewsBannerDismissed(true)}
+            style={{
+              flexShrink: 0, background: "none", border: "none", cursor: "pointer",
+              color: "rgba(255,255,255,0.25)", fontSize: "0.85rem", padding: "2px 4px",
+            }}
+            aria-label="Cerrar aviso"
+          >✕</button>
+        </div>
+      )}
 
       {/* Stage tabs */}
       <div style={{ display: "flex", gap: 4, overflowX: "auto", marginBottom: 4, paddingBottom: 4 }}>
