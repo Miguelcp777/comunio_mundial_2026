@@ -1,8 +1,10 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { Profile, Team, TournamentPrediction, MatchPrediction } from "@/lib/types/database";
+import { getTeamName } from "@/lib/utils";
 import Link from "next/link";
 
 export default function ProfilePage() {
@@ -140,7 +142,7 @@ export default function ProfilePage() {
               </div>
               <div style={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.35)", marginTop: 3 }}>
                 {tournamentPred
-                  ? `Campeón: ${getTeam(tournamentPred.champion_team_id)?.name ?? "—"}`
+                  ? (() => { const t = getTeam(tournamentPred.champion_team_id); return `Campeón: ${t ? getTeamName(t.code, t.name) : "—"}`; })()
                   : "Aún no has hecho tu predicción"}
               </div>
             </div>

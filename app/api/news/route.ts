@@ -62,9 +62,6 @@ interface NewsItem {
   description: string;
 }
 
-// In-memory cache por código: evita llamadas repetidas durante el mismo ciclo
-const memCache = new Map<string, { items: NewsItem[]; ts: number }>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 min
 
 function extractTag(xml: string, tag: string): string {
   const re = new RegExp(`<${tag}[^>]*>(?:<!\\[CDATA\\[)?([\\s\\S]*?)(?:\\]\\]>)?<\\/${tag}>`, "i");
@@ -117,12 +114,6 @@ export async function GET(request: Request) {
 
   if (!code) return NextResponse.json({ error: "code requerido" }, { status: 400 });
 
-  // Serve from in-memory cache if fresh
-  const cached = memCache.get(code);
-  if (cached && Date.now() - cached.ts < CACHE_TTL) {
-    return NextResponse.json({ code, items: cached.items });
-  }
-
   const term = SEARCH_TERMS[code] ?? `selección ${code} futbol mundial 2026`;
   const rssUrl = `https://news.google.com/rss/search?q=${encodeURIComponent(term)}&hl=es&gl=ES&ceid=ES:es&num=20`;
 
@@ -136,8 +127,6 @@ export async function GET(request: Request) {
 
     const xml = await res.text();
     const items = parseRSS(xml).slice(0, 10);
-
-    memCache.set(code, { items, ts: Date.now() });
 
     return NextResponse.json({ code, items }, {
       headers: {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createServiceClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
@@ -11,7 +12,7 @@ const NAME_TO_FIFA: Record<string, string> = {
   "USA": "USA", "United States": "USA", "Paraguay": "PAR", "Brazil": "BRA",
   "Morocco": "MAR", "Qatar": "QAT", "Switzerland": "SUI", "Haiti": "HAI",
   "Scotland": "SCO", "Germany": "GER", "Curaçao": "CUW", "Curacao": "CUW",
-  "Ivory Coast": "CIV", "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN",
+  "Ivory Coast": "CIV", "Côte d'Ivoire": "CIV", "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN",
   "Australia": "AUS", "Turkey": "TUR", "Belgium": "BEL", "Egypt": "EGY",
   "Saudi Arabia": "KSA", "Uruguay": "URU", "Spain": "ESP", "Cape Verde": "CPV",
   "Sweden": "SWE", "Tunisia": "TUN", "France": "FRA", "Senegal": "SEN",

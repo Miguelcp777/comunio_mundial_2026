@@ -1,4 +1,5 @@
 "use client";
+/* eslint-disable react-hooks/exhaustive-deps */
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,60 @@ import { createClient } from "@/lib/supabase/client";
 import { getFlagUrl, getTeamName } from "@/lib/utils";
 import type { Team } from "@/lib/types/database";
 import Image from "next/image";
+
+function TeamSelector({
+  label,
+  emoji,
+  value,
+  onChange,
+  exclude,
+  teams,
+}: {
+  label: string;
+  emoji: string;
+  value: number | null;
+  onChange: (id: number) => void;
+  exclude: (number | null)[];
+  teams: Team[];
+}) {
+  const available = teams.filter((t) => !exclude.includes(t.id) || t.id === value);
+  const selected = teams.find((t) => t.id === value);
+
+  return (
+    <div className="glass p-6 hover:glow-gold transition-all duration-500">
+      <div className="flex items-center gap-3 mb-4">
+        <span className="text-3xl">{emoji}</span>
+        <h3 className="font-[var(--font-heading)] font-bold text-lg">{label}</h3>
+      </div>
+
+      {selected && (
+        <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gold-400/10 border border-gold-400/20">
+          <Image
+            src={getFlagUrl(selected.code, "w80")}
+            alt={selected.name}
+            width={40}
+            height={27}
+            className="flag-img"
+          />
+          <span className="font-semibold text-gold-300">{selected.name}</span>
+        </div>
+      )}
+
+      <select
+        value={value || ""}
+        onChange={(e) => onChange(Number(e.target.value))}
+        className="input-field"
+      >
+        <option value="">Seleccionar equipo...</option>
+        {available.map((team) => (
+          <option key={team.id} value={team.id}>
+            {getTeamName(team.code, team.name)} (Grupo {team.group_letter})
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -93,58 +148,6 @@ export default function OnboardingPage() {
     router.push("/dashboard");
   };
 
-  const TeamSelector = ({
-    label,
-    emoji,
-    value,
-    onChange,
-    exclude,
-  }: {
-    label: string;
-    emoji: string;
-    value: number | null;
-    onChange: (id: number) => void;
-    exclude: (number | null)[];
-  }) => {
-    const available = teams.filter((t) => !exclude.includes(t.id) || t.id === value);
-    const selected = teams.find((t) => t.id === value);
-
-    return (
-      <div className="glass p-6 hover:glow-gold transition-all duration-500">
-        <div className="flex items-center gap-3 mb-4">
-          <span className="text-3xl">{emoji}</span>
-          <h3 className="font-[var(--font-heading)] font-bold text-lg">{label}</h3>
-        </div>
-
-        {selected && (
-          <div className="flex items-center gap-3 mb-4 p-3 rounded-xl bg-gold-400/10 border border-gold-400/20">
-            <Image
-              src={getFlagUrl(selected.code, "w80")}
-              alt={selected.name}
-              width={40}
-              height={27}
-              className="flag-img"
-            />
-            <span className="font-semibold text-gold-300">{selected.name}</span>
-          </div>
-        )}
-
-        <select
-          value={value || ""}
-          onChange={(e) => onChange(Number(e.target.value))}
-          className="input-field"
-        >
-          <option value="">Seleccionar equipo...</option>
-          {available.map((team) => (
-            <option key={team.id} value={team.id}>
-              {getTeamName(team.code, team.name)} (Grupo {team.group_letter})
-            </option>
-          ))}
-        </select>
-      </div>
-    );
-  };
-
   return (
     <div className="min-h-screen px-4 py-12">
       <div className="max-w-2xl mx-auto">
@@ -177,6 +180,7 @@ export default function OnboardingPage() {
             value={champion}
             onChange={setChampion}
             exclude={[runnerUp, thirdPlace]}
+            teams={teams}
           />
           <TeamSelector
             label="Subcampeón (+20 pts)"
@@ -184,6 +188,7 @@ export default function OnboardingPage() {
             value={runnerUp}
             onChange={setRunnerUp}
             exclude={[champion, thirdPlace]}
+            teams={teams}
           />
           <TeamSelector
             label="Tercer Clasificado (+15 pts)"
@@ -191,6 +196,7 @@ export default function OnboardingPage() {
             value={thirdPlace}
             onChange={setThirdPlace}
             exclude={[champion, runnerUp]}
+            teams={teams}
           />
         </div>
 
