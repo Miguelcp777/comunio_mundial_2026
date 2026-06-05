@@ -6,7 +6,6 @@ import { createClient } from "@/lib/supabase/client";
 import Link from "next/link";
 
 export default function LoginPage() {
-  const supabase = createClient();
   const [isSignUp, setIsSignUp] = useState(false);
   const [isResetMode, setIsResetMode] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
@@ -52,6 +51,7 @@ export default function LoginPage() {
     e.preventDefault();
     if (!resetEmail) return;
     setLoading(true); setError(null);
+    const supabase = createClient();
     const { error: err } = await supabase.auth.resetPasswordForEmail(resetEmail, {
       redirectTo: `${window.location.origin}/auth/confirm`,
     });
