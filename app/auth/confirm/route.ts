@@ -18,9 +18,13 @@ export async function GET(request: Request) {
   }
 
   if (tokenHash && type) {
-    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "signup" });
+    const { error } = await supabase.auth.verifyOtp({ token_hash: tokenHash, type: type as "email" | "signup" | "recovery" });
     if (!error) {
-      return NextResponse.redirect(`${origin}${next}`);
+      // Recovery links redirect to the password update page instead of onboarding
+      const redirectTo = type === "recovery"
+        ? `${origin}/auth/update-password`
+        : `${origin}${next}`;
+      return NextResponse.redirect(redirectTo);
     }
   }
 

@@ -119,7 +119,7 @@ export async function GET(request: Request) {
 
   try {
     const res = await fetch(rssUrl, {
-      cache: "no-store", // fetch siempre fresco; el caché lo gestionamos nosotros
+      next: { revalidate: 900 }, // cache de datos de Next.js: 15 min por URL
       headers: { "User-Agent": "Mozilla/5.0 (compatible; NewsBot/1.0)" },
     });
 

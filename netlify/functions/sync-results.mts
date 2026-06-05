@@ -1,5 +1,6 @@
 import { schedule } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
+import { calcPoints } from "../../lib/utils";
 
 const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/123";
 const WC_LEAGUE_ID = "4429";
@@ -60,25 +61,13 @@ const NAME_TO_FIFA: Record<string, string> = {
   "Iran": "IRN",
 };
 
-function calcPoints(
-  homeGoals: number, awayGoals: number,
-  predHome: number, predAway: number
-): number {
-  let pts = 0;
-  const sign = (h: number, a: number) => h > a ? "H" : h < a ? "A" : "D";
-  if (sign(homeGoals, awayGoals) === sign(predHome, predAway)) pts += 3;
-  if (homeGoals === predHome) pts += 1;
-  if (awayGoals === predAway) pts += 1;
-  return pts;
-}
-
-async function fetchJSON(url: string): Promise<any> {
+async function fetchJSON(url: string): Promise<unknown> {
   const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   return res.json();
 }
 
-// Returns unique dates for the last 2 days + today
+// Returns dates for today and the last 2 days
 function getRecentDates(): string[] {
   const dates: string[] = [];
   for (let i = 2; i >= 0; i--) {
@@ -115,11 +104,11 @@ export const handler = schedule("*/5 * * * *", async () => {
 
   // Fetch TheSportsDB events for each relevant date
   const dates = getRecentDates();
-  const eventsByDate: Record<string, any[]> = {};
+  const eventsByDate: Record<string, unknown[]> = {};
 
   for (const date of dates) {
     try {
-      const json = await fetchJSON(`${SPORTSDB_BASE}/eventsday.php?d=${date}&l=${WC_LEAGUE_ID}`);
+      const json = await fetchJSON(`${SPORTSDB_BASE}/eventsday.php?d=${date}&l=${WC_LEAGUE_ID}`) as { events?: unknown[] };
       eventsByDate[date] = json.events ?? [];
     } catch {
       eventsByDate[date] = [];
@@ -131,16 +120,16 @@ export const handler = schedule("*/5 * * * *", async () => {
   const updatedMatches: number[] = [];
 
   for (const match of pending) {
-    const homeCode = (match.home_team as any)?.code as string | undefined;
-    const awayCode = (match.away_team as any)?.code as string | undefined;
+    const homeCode = (match.home_team as unknown as { code: string } | null)?.code;
+    const awayCode = (match.away_team as unknown as { code: string } | null)?.code;
     if (!homeCode || !awayCode) continue;
 
     const matchDate = match.match_date!.split("T")[0];
-    const dayEvents = eventsByDate[matchDate] ?? [];
+    const dayEvents = (eventsByDate[matchDate] ?? []) as Record<string, unknown>[];
 
-    const event = dayEvents.find((e: any) => {
-      return NAME_TO_FIFA[e.strHomeTeam] === homeCode &&
-             NAME_TO_FIFA[e.strAwayTeam] === awayCode;
+    const event = dayEvents.find((e) => {
+      return NAME_TO_FIFA[e.strHomeTeam as string] === homeCode &&
+             NAME_TO_FIFA[e.strAwayTeam as string] === awayCode;
     });
 
     if (!event) continue;
@@ -154,8 +143,8 @@ export const handler = schedule("*/5 * * * *", async () => {
     if (!isFinished) continue;
     if (event.intHomeScore === null || event.intAwayScore === null) continue;
 
-    const homeGoals = parseInt(event.intHomeScore, 10);
-    const awayGoals = parseInt(event.intAwayScore, 10);
+    const homeGoals = parseInt(event.intHomeScore as string, 10);
+    const awayGoals = parseInt(event.intAwayScore as string, 10);
     if (isNaN(homeGoals) || isNaN(awayGoals)) continue;
 
     // Update match result
@@ -171,7 +160,7 @@ export const handler = schedule("*/5 * * * *", async () => {
 
     updatedMatches.push(match.id);
 
-    // Recalculate points for all predictions on this match
+    // Fetch all predictions for this match
     const { data: preds } = await supabase
       .from("match_predictions")
       .select("id, user_id, predicted_home_goals, predicted_away_goals")
@@ -179,16 +168,21 @@ export const handler = schedule("*/5 * * * *", async () => {
 
     if (!preds?.length) continue;
 
-    const affectedUsers = new Set<string>();
+    // Batch-update points in a single upsert
+    const pointsUpdates = preds.map(pred => ({
+      id: pred.id,
+      user_id: pred.user_id,
+      match_id: match.id,
+      predicted_home_goals: pred.predicted_home_goals,
+      predicted_away_goals: pred.predicted_away_goals,
+      points_earned: calcPoints(homeGoals, awayGoals, pred.predicted_home_goals, pred.predicted_away_goals),
+    }));
+    await supabase.from("match_predictions").upsert(pointsUpdates);
 
-    for (const pred of preds) {
-      const pts = calcPoints(homeGoals, awayGoals, pred.predicted_home_goals, pred.predicted_away_goals);
-      await supabase.from("match_predictions").update({ points_earned: pts }).eq("id", pred.id);
-      affectedUsers.add(pred.user_id);
-    }
+    const affectedUsers = [...new Set(preds.map(p => p.user_id))];
 
-    // Update total_points for each affected user
-    for (const userId of affectedUsers) {
+    // Recalculate total_points for all affected users in parallel
+    await Promise.all(affectedUsers.map(async (userId) => {
       const [{ data: matchPts }, { data: tournPred }] = await Promise.all([
         supabase
           .from("match_predictions")
@@ -203,13 +197,13 @@ export const handler = schedule("*/5 * * * *", async () => {
       ]);
 
       const matchTotal = matchPts?.reduce((s, p) => s + (p.points_earned ?? 0), 0) ?? 0;
-      const tournTotal = tournPred?.points_earned ?? 0;
+      const tournTotal = (tournPred as { points_earned?: number } | null)?.points_earned ?? 0;
 
       await supabase
         .from("profiles")
         .update({ total_points: matchTotal + tournTotal })
         .eq("id", userId);
-    }
+    }));
   }
 
   const msg = updatedMatches.length

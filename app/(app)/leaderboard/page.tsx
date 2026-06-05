@@ -284,6 +284,17 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
   const tournTotal = tournamentPoints ?? 0;
   const grandTotal = matchTotal + tournTotal;
 
+  // Prediction stats
+  const finishedMatches = matches.filter(m => m.real_home !== null);
+  const perfectCount = finishedMatches.filter(m => m.points_earned === 5).length;
+  const signHits = finishedMatches.filter(m => m.points_earned >= 3).length;
+  const avgPts = finishedMatches.length > 0
+    ? (finishedMatches.reduce((s, m) => s + m.points_earned, 0) / finishedMatches.length).toFixed(1)
+    : null;
+  const signPct = finishedMatches.length > 0
+    ? Math.round((signHits / finishedMatches.length) * 100)
+    : null;
+
   const ptColor = (pts: number) =>
     pts === 5 ? "#D4AF37" : pts >= 3 ? "#22c55e" : pts > 0 ? "rgba(255,255,255,0.7)" : "rgba(255,255,255,0.3)";
 
@@ -366,6 +377,23 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
                 </div>
               ))}
             </div>
+
+            {/* Prediction stats */}
+            {finishedMatches.length > 0 && (
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+                {[
+                  { label: "Plenos (5 pts)", value: `${perfectCount}`, icon: "🎯" },
+                  { label: "% 1/X/2 acertado", value: signPct !== null ? `${signPct}%` : "—", icon: "✅" },
+                  { label: "Promedio/partido", value: avgPts ?? "—", icon: "📊" },
+                ].map(s => (
+                  <div key={s.label} style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.06)", borderRadius: 10, padding: "10px 8px", textAlign: "center" }}>
+                    <div style={{ fontSize: "0.9rem", marginBottom: 4 }}>{s.icon}</div>
+                    <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "1.1rem", color: "rgba(255,255,255,0.85)", lineHeight: 1 }}>{s.value}</div>
+                    <div style={{ fontSize: "0.6rem", color: "rgba(255,255,255,0.3)", marginTop: 4, lineHeight: 1.3 }}>{s.label}</div>
+                  </div>
+                ))}
+              </div>
+            )}
 
             {/* Tournament prediction */}
             {(champion || runnerUp || thirdPlace || tournamentPoints !== null) && (

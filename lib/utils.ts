@@ -113,6 +113,19 @@ export function isPredictionLocked(matchDate: string | null): boolean {
 }
 
 /**
+ * Calculate points earned for a match prediction.
+ * +3 for correct result sign (H/D/A), +1 for each correct goal tally. Max 5.
+ */
+export function calcPoints(homeGoals: number, awayGoals: number, predHome: number, predAway: number): number {
+  let pts = 0;
+  const sign = (h: number, a: number) => h > a ? "H" : h < a ? "A" : "D";
+  if (sign(homeGoals, awayGoals) === sign(predHome, predAway)) pts += 3;
+  if (homeGoals === predHome) pts += 1;
+  if (awayGoals === predAway) pts += 1;
+  return pts;
+}
+
+/**
  * Get time remaining until prediction deadline
  */
 export function getTimeUntilDeadline(matchDate: string | null): {
