@@ -40,6 +40,7 @@ export default function Navbar() {
   };
 
   const navLinks = [
+    { href: "/hoy",         label: "Hoy",                icon: "📅" },
     { href: "/dashboard",   label: "Partidos",           icon: "⚽" },
     { href: "/torneo",      label: "Predicción Torneo",  icon: "🏆" },
     { href: "/leaderboard", label: "Clasificación",      icon: "📊" },
@@ -64,7 +65,7 @@ export default function Navbar() {
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "0 16px", height: 58 }}>
 
         {/* Logo */}
-        <Link href={profile ? "/dashboard" : "/"} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
+        <Link href={profile ? "/hoy" : "/"} style={{ display: "flex", alignItems: "center", gap: 10, textDecoration: "none" }}>
           <span style={{ fontSize: 20 }}>⚽</span>
           <div>
             <div style={{ fontFamily: "var(--font-heading)", fontWeight: 900, fontSize: "0.82rem", color: "#D4AF37", lineHeight: 1.1 }}>

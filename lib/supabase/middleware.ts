@@ -35,7 +35,7 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   // Protected routes
-  const protectedPaths = ["/dashboard", "/leaderboard", "/profile", "/onboarding", "/admin", "/torneo", "/info"];
+  const protectedPaths = ["/hoy", "/dashboard", "/leaderboard", "/profile", "/onboarding", "/admin", "/torneo", "/info"];
   const isProtected = protectedPaths.some((p) =>
     request.nextUrl.pathname.startsWith(p)
   );
@@ -46,10 +46,10 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // If logged in and on login page, redirect to dashboard
+  // If logged in and on login page, redirect to /hoy
   if (user && request.nextUrl.pathname === "/login") {
     const url = request.nextUrl.clone();
-    url.pathname = "/dashboard";
+    url.pathname = "/hoy";
     return NextResponse.redirect(url);
   }
 

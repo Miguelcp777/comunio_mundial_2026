@@ -37,6 +37,7 @@ export default function Sidebar() {
   };
 
   const navLinks = [
+    { href: "/hoy",         label: "Hoy",               icon: "📅" },
     { href: "/dashboard",   label: "Partidos",          icon: "⚽" },
     { href: "/torneo",      label: "Predicción Torneo", icon: "🏆" },
     { href: "/leaderboard", label: "Clasificación",     icon: "📊" },
@@ -55,7 +56,7 @@ export default function Sidebar() {
     >
       {/* Logo */}
       <div style={{ padding: "28px 20px 20px" }}>
-        <Link href="/dashboard" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
+        <Link href="/hoy" style={{ display: "flex", alignItems: "center", gap: 12, textDecoration: "none" }}>
           <div style={{
             width: 40, height: 40, borderRadius: 12, flexShrink: 0,
             background: "rgba(212,175,55,0.12)",
