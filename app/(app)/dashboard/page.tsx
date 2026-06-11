@@ -293,6 +293,7 @@ export default function DashboardPage() {
   const [matches, setMatches] = useState<MatchWithTeams[]>([]);
   const [predictions, setPredictions] = useState<Record<number, MatchPrediction>>({});
   const [userId, setUserId] = useState<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [savingMatch, setSavingMatch] = useState<number | null>(null);
   const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
@@ -312,7 +313,10 @@ export default function DashboardPage() {
 
   const loadData = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
-    if (user) setUserId(user.id);
+    if (user) {
+      setUserId(user.id);
+      userIdRef.current = user.id;
+    }
 
     const { data: matchesData } = await supabase
       .from("matches")
@@ -369,6 +373,23 @@ export default function DashboardPage() {
               : m
           )
         );
+        // When a match just finished, reload the user's prediction to show earned points
+        // Delay 2s to allow the backend to finish calculating points after updating the match
+        if (payload.new.is_finished) {
+          setTimeout(async () => {
+            const uid = userIdRef.current;
+            if (!uid) return;
+            const { data } = await supabase
+              .from("match_predictions")
+              .select("*")
+              .eq("user_id", uid)
+              .eq("match_id", payload.new.id)
+              .maybeSingle();
+            if (data) {
+              setPredictions(prev => ({ ...prev, [payload.new.id]: data as MatchPrediction }));
+            }
+          }, 2000);
+        }
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };

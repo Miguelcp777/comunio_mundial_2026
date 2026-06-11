@@ -479,6 +479,11 @@ function SyncPanel() {
               Partidos actualizados: #{syncResult.match_ids.join(", #")}
             </p>
           )}
+          {syncResult.recalculated > 0 && (
+            <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              Predicciones recalculadas: {syncResult.recalculated}
+            </p>
+          )}
         </div>
       )}
 

@@ -206,9 +206,48 @@ export const handler = schedule("*/5 * * * *", async () => {
     }));
   }
 
-  const msg = updatedMatches.length
-    ? `Updated ${updatedMatches.length} match(es): IDs ${updatedMatches.join(", ")}`
-    : "No new results";
+  // Phase 2: recalculate points for already-finished matches where predictions have null points
+  // (recovery path for partial sync failures from prior runs)
+  let recalculated = 0;
+  const { data: finishedMatches } = await supabase
+    .from("matches")
+    .select("id, home_goals, away_goals")
+    .eq("is_finished", true)
+    .not("home_goals", "is", null)
+    .not("away_goals", "is", null);
+
+  for (const match of finishedMatches ?? []) {
+    const { data: nullPreds } = await supabase
+      .from("match_predictions")
+      .select("id, user_id, predicted_home_goals, predicted_away_goals")
+      .eq("match_id", match.id)
+      .is("points_earned", null);
+
+    if (!nullPreds?.length) continue;
+
+    const usersToRecalc = new Set<string>();
+    for (const pred of nullPreds) {
+      const pts = calcPoints(match.home_goals as number, match.away_goals as number, pred.predicted_home_goals, pred.predicted_away_goals);
+      await supabase.from("match_predictions").update({ points_earned: pts }).eq("id", pred.id);
+      usersToRecalc.add(pred.user_id);
+      recalculated++;
+    }
+
+    for (const userId of usersToRecalc) {
+      const [{ data: matchPts }, { data: tournPred }] = await Promise.all([
+        supabase.from("match_predictions").select("points_earned").eq("user_id", userId).not("points_earned", "is", null),
+        supabase.from("tournament_predictions").select("points_earned").eq("user_id", userId).single(),
+      ]);
+      const matchTotal = matchPts?.reduce((s, p) => s + (p.points_earned ?? 0), 0) ?? 0;
+      const tournTotal = (tournPred as { points_earned?: number } | null)?.points_earned ?? 0;
+      await supabase.from("profiles").update({ total_points: matchTotal + tournTotal }).eq("id", userId);
+    }
+  }
+
+  const parts: string[] = [];
+  if (updatedMatches.length) parts.push(`Updated ${updatedMatches.length} match(es): IDs ${updatedMatches.join(", ")}`);
+  if (recalculated) parts.push(`Recalculated ${recalculated} prediction(s)`);
+  const msg = parts.length ? parts.join(". ") : "No new results";
 
   console.log(`[sync-results] ${new Date().toISOString()} — ${msg}`);
   return { statusCode: 200, body: msg };

@@ -12,6 +12,10 @@ export async function POST(req: Request) {
   const { data: profile } = await supabase.from("profiles").select("is_admin").eq("id", user.id).single();
   if (!profile?.is_admin) return NextResponse.json({ error: "Sin permisos" }, { status: 403 });
 
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return NextResponse.json({ error: "SUPABASE_SERVICE_ROLE_KEY no configurada en el servidor" }, { status: 500 });
+  }
+
   const { matchId, homeGoals, awayGoals } = await req.json();
   if (
     !Number.isInteger(matchId) ||
@@ -29,12 +33,18 @@ export async function POST(req: Request) {
   );
 
   // Update match result
-  const { error: matchErr } = await service
+  const { data: updatedMatch, error: matchErr } = await service
     .from("matches")
     .update({ home_goals: homeGoals, away_goals: awayGoals, is_finished: true })
-    .eq("id", matchId);
+    .eq("id", matchId)
+    .select("id");
 
   if (matchErr) return NextResponse.json({ error: matchErr.message }, { status: 500 });
+  if (!updatedMatch?.length) {
+    return NextResponse.json({
+      error: "No se pudo actualizar el partido. Verifica que SUPABASE_SERVICE_ROLE_KEY esté configurada correctamente en el servidor.",
+    }, { status: 500 });
+  }
 
   // Fetch all predictions for this match
   const { data: preds } = await service
@@ -46,16 +56,16 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, predictions_updated: 0, users_updated: 0 });
   }
 
-  // Batch-update points in a single upsert
-  const pointsUpdates = preds.map(pred => ({
-    id: pred.id,
-    user_id: pred.user_id,
-    match_id: matchId,
-    predicted_home_goals: pred.predicted_home_goals,
-    predicted_away_goals: pred.predicted_away_goals,
-    points_earned: calcPoints(homeGoals, awayGoals, pred.predicted_home_goals, pred.predicted_away_goals),
-  }));
-  await service.from("match_predictions").upsert(pointsUpdates);
+  // Update points_earned for each prediction individually
+  // Using UPDATE (not upsert) to avoid triggering the INSERT RLS policy after the lock deadline
+  for (const pred of preds) {
+    const pts = calcPoints(homeGoals, awayGoals, pred.predicted_home_goals, pred.predicted_away_goals);
+    const { error: predErr } = await service
+      .from("match_predictions")
+      .update({ points_earned: pts })
+      .eq("id", pred.id);
+    if (predErr) console.error("Prediction update error:", pred.id, predErr.message);
+  }
 
   const affectedUsers = [...new Set(preds.map(p => p.user_id))];
 

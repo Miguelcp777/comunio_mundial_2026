@@ -136,12 +136,52 @@ export async function POST() {
     }
   }
 
+  // Phase 2: recalculate points for already-finished matches where predictions still have null points
+  // (recovery path for partial sync failures)
+  let recalculated = 0;
+  const { data: finishedMatches } = await serviceClient
+    .from("matches")
+    .select("id, home_goals, away_goals")
+    .eq("is_finished", true)
+    .not("home_goals", "is", null)
+    .not("away_goals", "is", null);
+
+  for (const match of finishedMatches ?? []) {
+    const { data: nullPreds } = await serviceClient
+      .from("match_predictions")
+      .select("id, user_id, predicted_home_goals, predicted_away_goals")
+      .eq("match_id", match.id)
+      .is("points_earned", null);
+
+    if (!nullPreds?.length) continue;
+
+    const usersToRecalc = new Set<string>();
+    for (const pred of nullPreds) {
+      const pts = calcPoints(match.home_goals!, match.away_goals!, pred.predicted_home_goals, pred.predicted_away_goals);
+      await serviceClient.from("match_predictions").update({ points_earned: pts }).eq("id", pred.id);
+      usersToRecalc.add(pred.user_id);
+      recalculated++;
+    }
+
+    for (const userId of usersToRecalc) {
+      const [{ data: matchPts }, { data: tournPred }] = await Promise.all([
+        serviceClient.from("match_predictions").select("points_earned").eq("user_id", userId).not("points_earned", "is", null),
+        serviceClient.from("tournament_predictions").select("points_earned").eq("user_id", userId).single(),
+      ]);
+      const total = (matchPts?.reduce((s, p) => s + (p.points_earned ?? 0), 0) ?? 0) + (tournPred?.points_earned ?? 0);
+      await serviceClient.from("profiles").update({ total_points: total }).eq("id", userId);
+    }
+  }
+
   return NextResponse.json({
     updated: updatedMatches.length,
     match_ids: updatedMatches,
+    recalculated,
     errors,
     message: updatedMatches.length
       ? `${updatedMatches.length} partido(s) actualizados`
+      : recalculated > 0
+      ? `${recalculated} predicción(es) con puntos recalculados`
       : "No hay resultados nuevos en TheSportsDB",
   });
   } catch (err) {
