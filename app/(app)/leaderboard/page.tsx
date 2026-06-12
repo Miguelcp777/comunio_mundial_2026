@@ -1,7 +1,7 @@
 "use client";
 /* eslint-disable react-hooks/exhaustive-deps, @typescript-eslint/no-explicit-any */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { getFlagUrl, formatStage, getTeamName } from "@/lib/utils";
 import type { Profile, Team } from "@/lib/types/database";
@@ -35,48 +35,95 @@ type PointsDetail = {
   matches: MatchBreakdown[];
 };
 
+/* ── Desempates de clasificación ──
+ * Orden: 1) puntos totales  2) plenos (resultado exacto = 5 pts)
+ *        3) aciertos 1-X-2 (signo, >= 3 pts)  4) goles individuales acertados
+ * Todo se deriva de points_earned. Valores posibles por partido: 0, 1, 3, 4, 5.
+ *   pleno ⟺ 5 · signo ⟺ >= 3 · goles: 5→2, 4→1, 1→1, resto→0
+ */
+type RankStat = { plenos: number; signos: number; goles: number };
+const EMPTY_STAT: RankStat = { plenos: 0, signos: 0, goles: 0 };
+
+function golesAcertados(pe: number): number {
+  if (pe === 5) return 2;
+  if (pe === 4 || pe === 1) return 1;
+  return 0;
+}
+
+function computeRankStats(rows: { user_id: string; points_earned: number | null }[]): Record<string, RankStat> {
+  const map: Record<string, RankStat> = {};
+  for (const r of rows) {
+    if (r.points_earned === null) continue;
+    const st = (map[r.user_id] ??= { plenos: 0, signos: 0, goles: 0 });
+    if (r.points_earned === 5) st.plenos++;
+    if (r.points_earned >= 3) st.signos++;
+    st.goles += golesAcertados(r.points_earned);
+  }
+  return map;
+}
+
+function sortByRanking(profiles: Profile[], stats: Record<string, RankStat>): Profile[] {
+  return [...profiles].sort((a, b) => {
+    if (b.total_points !== a.total_points) return b.total_points - a.total_points;
+    const sa = stats[a.id] ?? EMPTY_STAT;
+    const sb = stats[b.id] ?? EMPTY_STAT;
+    if (sb.plenos !== sa.plenos) return sb.plenos - sa.plenos;     // 2º: más plenos
+    if (sb.signos !== sa.signos) return sb.signos - sa.signos;     // 3º: más 1-X-2
+    if (sb.goles !== sa.goles) return sb.goles - sa.goles;         // 4º: más goles acertados
+    return a.display_name.localeCompare(b.display_name);           // estable: alfabético
+  });
+}
+
 export default function LeaderboardPage() {
   const supabase = createClient();
   const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [stats, setStats] = useState<Record<string, RankStat>>({});
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<PointsDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Carga perfiles + estadísticas de desempate y ordena con los 4 criterios
+  const loadLeaderboard = useCallback(async () => {
+    const [profRes, predRes] = await Promise.all([
+      supabase.from("profiles").select("*"),
+      supabase.from("match_predictions").select("user_id, points_earned").not("points_earned", "is", null),
+    ]);
+    const rankStats = computeRankStats(predRes.data ?? []);
+    setStats(rankStats);
+    setProfiles(sortByRanking(profRes.data ?? [], rankStats));
+  }, [supabase]);
 
   useEffect(() => {
-    async function loadData() {
+    (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
-      const { data } = await supabase
-        .from("profiles")
-        .select("*")
-        .order("total_points", { ascending: false });
-      if (data) setProfiles(data);
+      await loadLeaderboard();
       setLoading(false);
-    }
-    loadData();
-  }, []);
+    })();
+  }, [loadLeaderboard]);
 
-  // Supabase Realtime: re-sort leaderboard when points change
+  // Realtime: cuando cambian los puntos, refresca perfiles + desempates y re-ordena.
+  // Debounce porque un sync actualiza varios perfiles seguidos (ráfaga de eventos).
   useEffect(() => {
     const channel = supabase
       .channel("profiles-live")
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles" },
-        (payload) => {
-          setProfiles((prev) => {
-            const updated = prev.map((p) =>
-              p.id === payload.new.id ? { ...p, total_points: payload.new.total_points } : p
-            );
-            return [...updated].sort((a, b) => b.total_points - a.total_points);
-          });
+        () => {
+          if (refetchTimer.current) clearTimeout(refetchTimer.current);
+          refetchTimer.current = setTimeout(() => { loadLeaderboard(); }, 400);
         }
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
-  }, [supabase]);
+    return () => {
+      supabase.removeChannel(channel);
+      if (refetchTimer.current) clearTimeout(refetchTimer.current);
+    };
+  }, [supabase, loadLeaderboard]);
 
   const openDetail = useCallback(async (profile: Profile) => {
     setLoadingDetail(true);
@@ -231,9 +278,20 @@ export default function LeaderboardPage() {
                   }}>
                     {profile.display_name.charAt(0).toUpperCase()}
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: "0.875rem", color: isMe ? "#D4AF37" : "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                    {profile.display_name}
-                    {isMe && <span style={{ marginLeft: 6, fontSize: "0.68rem", color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>tú</span>}
+                  <div style={{ minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: "0.875rem", color: isMe ? "#D4AF37" : "rgba(255,255,255,0.85)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {profile.display_name}
+                      {isMe && <span style={{ marginLeft: 6, fontSize: "0.68rem", color: "rgba(255,255,255,0.3)", fontWeight: 400 }}>tú</span>}
+                    </div>
+                    {(() => {
+                      const st = stats[profile.id];
+                      if (!st || (st.plenos === 0 && st.signos === 0)) return null;
+                      return (
+                        <div style={{ fontSize: "0.66rem", color: "rgba(255,255,255,0.32)", marginTop: 2, fontWeight: 600, whiteSpace: "nowrap" }}>
+                          🎯 {st.plenos} {st.plenos === 1 ? "pleno" : "plenos"} · ✅ {st.signos} 1X2
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end" }}>
