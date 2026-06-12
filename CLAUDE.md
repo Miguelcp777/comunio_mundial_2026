@@ -169,6 +169,21 @@ Por eso, si una escritura del backend falla con un mensaje de negocio (deadline,
 - Se bloquean **15 minutos antes** del kickoff (`isPredictionLocked` en `lib/utils.ts`)
 - `tournament_predictions.is_locked = true` → no editable
 
+### Orden de la clasificación (desempates)
+La tabla de clasificación ordena por **4 criterios en cascada**, todos derivados de `match_predictions.points_earned` (no hay columnas extra en la BD):
+
+| Nivel | Criterio | Cómo se calcula |
+|---|---|---|
+| 1º | Puntos totales | `profiles.total_points` (desc) |
+| 2º | **Plenos** (resultado exacto) | `count(points_earned = 5)` (desc) |
+| 3º | **Aciertos 1-X-2** (signo) | `count(points_earned >= 3)` (desc) |
+| 4º | **Goles individuales acertados** | `5→2, 4→1, 1→1, resto→0` sumado (desc) |
+| — | Empate final | alfabético por `display_name` (orden estable) |
+
+> Propiedad clave: los valores posibles de `points_earned` por partido son **`0, 1, 3, 4, 5`** (el `2` es imposible: acertar ambos goles implica acertar el signo → pleno = 5). Por eso `pleno ⟺ 5`, `signo ⟺ >= 3`, y los goles acertados se derivan sin recalcular nada.
+
+Implementado en `leaderboard/page.tsx` (`computeRankStats`, `sortByRanking`). **NO** delegar el orden a `.order("total_points")` de Supabase: solo cubre el 1er criterio. Hay que traer las predicciones y ordenar en cliente.
+
 ---
 
 ## Supabase — Cuándo usar cada cliente
@@ -285,7 +300,7 @@ En producción (Netlify) estas vars deben estar configuradas en el dashboard. El
 
 - Tablas con Realtime habilitado: **`matches`** y **`profiles`** (activar en Supabase → Replication)
 - `dashboard/page.tsx`: suscripción `UPDATE` en `matches` → actualiza resultados en vivo
-- `leaderboard/page.tsx`: suscripción `UPDATE` en `profiles` → re-ordena clasificación en vivo
+- `leaderboard/page.tsx`: suscripción `UPDATE` en `profiles` → **refetcha perfiles + predicciones y re-ordena con los 4 criterios de desempate** (con debounce de 400 ms para coalescer la ráfaga de updates de un sync). No basta con re-ordenar por `total_points` en el payload: se perderían los desempates.
 - Usar `createClient()` del cliente de browser para suscripciones Realtime
 
 ---
