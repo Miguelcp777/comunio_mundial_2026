@@ -631,7 +631,7 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
           <div style={{ overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 16 }}>
 
             {/* Total summary */}
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 10, flexShrink: 0 }}>
               {[
                 { label: "Partidos", value: matchTotal, icon: "⚽" },
                 { label: "Torneo", value: tournTotal, icon: "🏆" },
@@ -653,7 +653,7 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
 
             {/* Prediction stats */}
             {finishedMatches.length > 0 && (
-              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8 }}>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, flexShrink: 0 }}>
                 {[
                   { label: "Plenos (5 pts)", value: `${perfectCount}`, icon: "🎯" },
                   { label: "% 1/X/2 acertado", value: signPct !== null ? `${signPct}%` : "—", icon: "✅" },
@@ -670,7 +670,7 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
 
             {/* Tournament prediction */}
             {(champion || runnerUp || thirdPlace || tournamentPoints !== null) && (
-              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
                 <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.72rem", color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     🏆 Predicción del Torneo
@@ -712,7 +712,7 @@ function PointsModal({ detail, loading, onClose }: { detail: PointsDetail; loadi
 
             {/* Match breakdown */}
             {matches.length > 0 && (
-              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden" }}>
+              <div style={{ background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 14, overflow: "hidden", flexShrink: 0 }}>
                 <div style={{ padding: "10px 14px", borderBottom: "1px solid rgba(255,255,255,0.06)" }}>
                   <span style={{ fontFamily: "var(--font-heading)", fontWeight: 700, fontSize: "0.72rem", color: "#a855f7", textTransform: "uppercase", letterSpacing: "0.08em" }}>
                     ⚽ Partidos con puntos ({matches.length})
