@@ -202,11 +202,8 @@ export default function LeaderboardPage() {
         .eq("user_id", profile.id)
         .not("points_earned", "is", null)
         .order("points_earned", { ascending: false }),
-      supabase
-        .from("tournament_predictions")
-        .select("*, champion:teams!tournament_predictions_champion_team_id_fkey(*), runner_up:teams!tournament_predictions_runner_up_team_id_fkey(*), third_place:teams!tournament_predictions_third_place_team_id_fkey(*)")
-        .eq("user_id", profile.id)
-        .single(),
+      // Vía endpoint de servidor: RLS solo deja ver la predicción de torneo propia desde el cliente
+      fetch(`/api/tournament-prediction?userId=${profile.id}`).then(r => r.json()).catch(() => null),
     ]);
 
     const matches: MatchBreakdown[] = (predRes.data ?? []).map((p: any) => ({
@@ -222,7 +219,7 @@ export default function LeaderboardPage() {
       away_team: p.match?.away_team ?? null,
     }));
 
-    const tourn = tournRes.data as any;
+    const tourn = (tournRes as any)?.prediction ?? null;
     setDetail({
       profile,
       tournamentPoints: tourn?.points_earned ?? null,
