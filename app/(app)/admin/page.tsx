@@ -554,6 +554,29 @@ function SyncPanel() {
         </div>
       )}
 
+      {/* Bracket mismatches — assigned matchups that disagree with the API */}
+      {bracketResult?.mismatches?.length > 0 && (
+        <div style={card("rgba(234,179,8,0.08)", "rgba(234,179,8,0.28)")}>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.85rem", color: "#eab308", marginBottom: 8 }}>
+            ⚠️ Cruces que NO coinciden con la API
+          </p>
+          <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.5)", marginBottom: 8 }}>
+            Están asignados a mano y no se sobrescriben. Revísalos en la pestaña Partidos (botón &quot;Reasignar equipos&quot;):
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+            {bracketResult.mismatches.map((m: any) => (
+              <div key={m.match_id} style={{ display: "flex", alignItems: "center", gap: 10, fontSize: "0.78rem" }}>
+                <span style={{ color: "rgba(255,255,255,0.35)", fontFamily: "var(--font-heading)", fontWeight: 700 }}>#{m.match_number}</span>
+                <span style={{ color: "#ef4444", fontWeight: 700 }}>BD: {m.db}</span>
+                <span style={{ color: "rgba(255,255,255,0.3)" }}>→</span>
+                <span style={{ color: "#22c55e", fontWeight: 700 }}>API: {m.api}</span>
+                {m.swapped && <span style={{ fontSize: "0.66rem", color: "#eab308", background: "rgba(234,179,8,0.12)", borderRadius: 6, padding: "1px 6px" }}>local/visitante invertidos</span>}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Sync result feedback */}
       {syncResult && (
         <div style={{

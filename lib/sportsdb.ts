@@ -72,6 +72,8 @@ type SportsDbEvent = {
 export type BracketSyncResult = {
   assigned: { match_id: number; match_number: number | null; home: string; away: string }[];
   unmatched_rows: { match_id: number; match_number: number | null; match_date: string | null }[];
+  // Already-assigned rows whose teams disagree with the API for that slot (not overwritten — just flagged)
+  mismatches: { match_id: number; match_number: number | null; match_date: string | null; db: string; api: string; swapped: boolean }[];
   errors: string[];
 };
 
@@ -109,19 +111,22 @@ function eventKey(e: SportsDbEvent): string | null {
  * dates/venues are pre-seeded and identical to TheSportsDB's, so this is exact. Rows that
  * can't be matched are returned in `unmatched_rows` for manual resolution in the admin panel.
  *
+ * Already-assigned rows are never overwritten, but are compared against the API for their
+ * slot — any disagreement is returned in `mismatches` so the admin can review it.
+ *
  * Does NOT overwrite venue/date (DB stores city, API stores stadium) and never touches
  * finished matches.
  */
 export async function assignBracketTeams(supabase: SupabaseClient): Promise<BracketSyncResult> {
-  const result: BracketSyncResult = { assigned: [], unmatched_rows: [], errors: [] };
+  const result: BracketSyncResult = { assigned: [], unmatched_rows: [], mismatches: [], errors: [] };
 
-  // 1. Knockout rows still missing one or both teams
+  // 1. All non-finished knockout rows (empty → assign; assigned → reconcile against API)
   const { data: rows, error: rowsErr } = await supabase
     .from("matches")
-    .select("id, match_number, match_date, stage")
+    .select("id, match_number, match_date, stage, home_team_id, away_team_id")
     .neq("stage", "group")
-    .not("match_date", "is", null)
-    .or("home_team_id.is.null,away_team_id.is.null");
+    .eq("is_finished", false)
+    .not("match_date", "is", null);
 
   if (rowsErr) {
     result.errors.push(`rows: ${rowsErr.message}`);
@@ -129,13 +134,14 @@ export async function assignBracketTeams(supabase: SupabaseClient): Promise<Brac
   }
   if (!rows?.length) return result;
 
-  // 2. teams: FIFA code → id
+  // 2. teams: FIFA code ↔ id (both directions)
   const { data: teams, error: teamsErr } = await supabase.from("teams").select("id, code");
   if (teamsErr) {
     result.errors.push(`teams: ${teamsErr.message}`);
     return result;
   }
   const codeToId = new Map<string, number>((teams ?? []).map((t: any) => [t.code, t.id]));
+  const idToCode = new Map<number, string>((teams ?? []).map((t: any) => [t.id, t.code]));
 
   // 3. Fetch events for each UTC date present in the pending rows
   const dates = [...new Set(rows.map((r: any) => utcKey(r.match_date).slice(0, 10)))];
@@ -154,17 +160,38 @@ export async function assignBracketTeams(supabase: SupabaseClient): Promise<Brac
     await new Promise((r) => setTimeout(r, 300)); // free-tier rate limit (~30/min)
   }
 
-  // 4. Match each pending row by kickoff timestamp and assign teams
+  // 4. Reconcile each row against the API event at its kickoff timestamp
   for (const row of rows as any[]) {
     const key = utcKey(row.match_date);
     const event = eventsByKey.get(key);
 
-    const homeCode = event ? NAME_TO_FIFA[event.strHomeTeam] : undefined;
-    const awayCode = event ? NAME_TO_FIFA[event.strAwayTeam] : undefined;
-    const homeId = homeCode ? codeToId.get(homeCode) : undefined;
-    const awayId = awayCode ? codeToId.get(awayCode) : undefined;
+    // What the API says for this slot (only "confident" if both teams resolve to real codes/ids)
+    const apiHomeCode = event ? NAME_TO_FIFA[event.strHomeTeam] : undefined;
+    const apiAwayCode = event ? NAME_TO_FIFA[event.strAwayTeam] : undefined;
+    const apiHomeId = apiHomeCode ? codeToId.get(apiHomeCode) : undefined;
+    const apiAwayId = apiAwayCode ? codeToId.get(apiAwayCode) : undefined;
+    const apiConfident = !!(event && apiHomeId && apiAwayId && apiHomeId !== apiAwayId);
 
-    if (!event || !homeId || !awayId || homeId === awayId) {
+    const alreadyAssigned = !!(row.home_team_id && row.away_team_id);
+
+    if (alreadyAssigned) {
+      // Don't overwrite manual/previous assignments — just flag disagreements with the API
+      if (apiConfident && (row.home_team_id !== apiHomeId || row.away_team_id !== apiAwayId)) {
+        const swapped = row.home_team_id === apiAwayId && row.away_team_id === apiHomeId;
+        result.mismatches.push({
+          match_id: row.id,
+          match_number: row.match_number,
+          match_date: row.match_date,
+          db: `${idToCode.get(row.home_team_id) ?? row.home_team_id} vs ${idToCode.get(row.away_team_id) ?? row.away_team_id}`,
+          api: `${apiHomeCode} vs ${apiAwayCode}`,
+          swapped,
+        });
+      }
+      continue;
+    }
+
+    // Empty row → assign if the API already publishes both teams
+    if (!apiConfident) {
       result.unmatched_rows.push({
         match_id: row.id,
         match_number: row.match_number,
@@ -175,7 +202,7 @@ export async function assignBracketTeams(supabase: SupabaseClient): Promise<Brac
 
     const { error: updErr } = await supabase
       .from("matches")
-      .update({ home_team_id: homeId, away_team_id: awayId })
+      .update({ home_team_id: apiHomeId, away_team_id: apiAwayId })
       .eq("id", row.id);
 
     if (updErr) {
@@ -186,8 +213,8 @@ export async function assignBracketTeams(supabase: SupabaseClient): Promise<Brac
     result.assigned.push({
       match_id: row.id,
       match_number: row.match_number,
-      home: homeCode!,
-      away: awayCode!,
+      home: apiHomeCode!,
+      away: apiAwayCode!,
     });
   }
 

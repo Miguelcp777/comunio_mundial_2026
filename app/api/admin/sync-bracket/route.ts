@@ -25,15 +25,20 @@ export async function POST() {
 
     const result = await assignBracketTeams(service);
 
+    const parts: string[] = [];
+    if (result.assigned.length) parts.push(`${result.assigned.length} cruce(s) asignados`);
+    if (result.mismatches.length) parts.push(`⚠️ ${result.mismatches.length} cruce(s) NO coinciden con la API`);
+
     return NextResponse.json({
       ...result,
       assigned_count: result.assigned.length,
       unmatched_count: result.unmatched_rows.length,
-      message: result.assigned.length
-        ? `${result.assigned.length} cruce(s) asignados`
+      mismatch_count: result.mismatches.length,
+      message: parts.length
+        ? parts.join(" · ")
         : result.unmatched_rows.length
         ? "No hay cruces nuevos publicados en TheSportsDB todavía"
-        : "Todos los cruces ya están asignados",
+        : "Todos los cruces ya están asignados y coinciden con la API",
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

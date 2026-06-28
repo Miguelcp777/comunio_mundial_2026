@@ -33,6 +33,10 @@ export const handler = schedule("*/5 * * * *", async () => {
     const bracket = await assignBracketTeams(supabase);
     bracketAssigned = bracket.assigned.length;
     if (bracket.errors.length) console.error("[sync-results] bracket errors:", bracket.errors.join("; "));
+    if (bracket.mismatches.length) {
+      console.warn("[sync-results] bracket MISMATCHES (assigned ≠ API):",
+        bracket.mismatches.map(m => `#${m.match_number} BD=${m.db} API=${m.api}`).join("; "));
+    }
   } catch (e) {
     console.error("[sync-results] bracket sync failed:", e instanceof Error ? e.message : String(e));
   }
