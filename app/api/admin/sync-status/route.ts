@@ -1,26 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { createClient } from "@/lib/supabase/server";
 import { NextResponse } from "next/server";
-
-const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/123";
-const WC_LEAGUE_ID = "4429";
-
-const NAME_TO_FIFA: Record<string, string> = {
-  "Mexico": "MEX", "South Africa": "RSA", "South Korea": "KOR",
-  "Czech Republic": "CZE", "Canada": "CAN", "Bosnia-Herzegovina": "BIH",
-  "USA": "USA", "United States": "USA", "Paraguay": "PAR", "Brazil": "BRA",
-  "Morocco": "MAR", "Qatar": "QAT", "Switzerland": "SUI", "Haiti": "HAI",
-  "Scotland": "SCO", "Germany": "GER", "Curaçao": "CUW", "Curacao": "CUW",
-  "Ivory Coast": "CIV", "Côte d'Ivoire": "CIV", "Ecuador": "ECU", "Netherlands": "NED", "Japan": "JPN",
-  "Australia": "AUS", "Turkey": "TUR", "Belgium": "BEL", "Egypt": "EGY",
-  "Saudi Arabia": "KSA", "Uruguay": "URU", "Spain": "ESP", "Cape Verde": "CPV",
-  "Sweden": "SWE", "Tunisia": "TUN", "France": "FRA", "Senegal": "SEN",
-  "Iraq": "IRQ", "Norway": "NOR", "Argentina": "ARG", "Algeria": "ALG",
-  "Austria": "AUT", "Jordan": "JOR", "Portugal": "POR", "DR Congo": "COD",
-  "Congo DR": "COD", "Uzbekistan": "UZB", "Colombia": "COL", "England": "ENG",
-  "Croatia": "CRO", "Ghana": "GHA", "Panama": "PAN", "New Zealand": "NZL",
-  "Iran": "IRN",
-};
+import { NAME_TO_FIFA, SPORTSDB_BASE, WC_LEAGUE_ID } from "@/lib/sportsdb";
 
 export async function GET() {
   const supabase = await createClient();

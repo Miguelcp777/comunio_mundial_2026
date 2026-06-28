@@ -11,7 +11,7 @@ type MatchWithTeams = Match & { home_team: Team | null; away_team: Team | null }
 
 const ALL_STAGES = [
   { key: "group",        label: "Grupos" },
-  { key: "round_of_32",  label: "32avos" },
+  { key: "round_of_32",  label: "16avos" },
   { key: "round_of_16",  label: "Octavos" },
   { key: "quarter_final",label: "Cuartos" },
   { key: "semi_final",   label: "Semis" },
@@ -42,6 +42,15 @@ function Btn({ children, onClick, disabled, variant = "gold", small = false }: {
       {children}
     </button>
   );
+}
+
+/* UTC ISO → "YYYY-MM-DDTHH:MM" in the browser's local time, for <input type="datetime-local"> */
+function toDatetimeLocal(iso: string | null): string {
+  if (!iso) return "";
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
 function SectionLabel({ children }: { children: React.ReactNode }) {
@@ -242,9 +251,14 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
   const [awayGoals, setAwayGoals] = useState(match.away_goals?.toString() ?? "");
   const [saving, setSaving] = useState(false);
   const [editResult, setEditResult] = useState(false);
+  const [editTeams, setEditTeams] = useState(false);
+  const [editDate, setEditDate] = useState(false);
+  const [dateValue, setDateValue] = useState(toDatetimeLocal(match.match_date));
+  const [savingDate, setSavingDate] = useState(false);
 
   const hasTeams = !!(match.home_team_id && match.away_team_id);
   const isFinished = match.is_finished;
+  const showAssign = !hasTeams || editTeams;
 
   const assignTeams = async () => {
     if (!homeId || !awayId || homeId === awayId) return;
@@ -254,8 +268,19 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
       away_team_id: parseInt(awayId),
     }).eq("id", match.id);
     if (error) alert(error.message);
-    else onUpdate();
+    else { setEditTeams(false); onUpdate(); }
     setSaving(false);
+  };
+
+  const saveDate = async () => {
+    if (!dateValue) return;
+    setSavingDate(true);
+    // datetime-local is naive local time → store the corresponding UTC instant
+    const iso = new Date(dateValue).toISOString();
+    const { error } = await supabase.from("matches").update({ match_date: iso }).eq("id", match.id);
+    if (error) alert(error.message);
+    else { setEditDate(false); onUpdate(); }
+    setSavingDate(false);
   };
 
   const saveResult = async () => {
@@ -293,7 +318,7 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
 
       <div style={{ padding: "16px" }}>
         {/* Teams display / assignment */}
-        {hasTeams ? (
+        {!showAssign ? (
           <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: (isFinished && !editResult) ? 0 : 16 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 8, flex: 1, minWidth: 0 }}>
               {match.home_team && (
@@ -332,7 +357,7 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
         ) : (
           /* Team assignment */
           <div style={{ marginBottom: 12 }}>
-            <SectionLabel>Asignar equipos</SectionLabel>
+            <SectionLabel>{editTeams ? "Reasignar equipos" : "Asignar equipos"}</SectionLabel>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
               <select value={homeId} onChange={e => setHomeId(e.target.value)}
                 style={{ padding: "10px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark" }}>
@@ -348,19 +373,34 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
           </div>
         )}
 
+        {/* Manual date/time override (fallback if the API sync misses or shifts a fixture) */}
+        {editDate && (
+          <div style={{ margin: "4px 0 12px" }}>
+            <SectionLabel>Editar fecha y hora (tu hora local)</SectionLabel>
+            <input type="datetime-local" value={dateValue} onChange={e => setDateValue(e.target.value)}
+              style={{ padding: "9px 12px", borderRadius: 10, background: "#1a2035", border: "1px solid rgba(255,255,255,0.18)", color: "white", fontSize: "0.82rem", outline: "none", colorScheme: "dark", width: "100%", maxWidth: 260 }} />
+          </div>
+        )}
+
         {/* Action buttons */}
-        <div style={{ display: "flex", gap: 8 }}>
-          {!hasTeams && (
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          {showAssign && (
             <Btn onClick={assignTeams} disabled={saving || !homeId || !awayId || homeId === awayId} small>
-              {saving ? "..." : "Asignar equipos"}
+              {saving ? "..." : editTeams ? "Guardar equipos" : "Asignar equipos"}
             </Btn>
           )}
-          {hasTeams && !isFinished && (
+          {showAssign && editTeams && (
+            <Btn variant="ghost" onClick={() => { setEditTeams(false); setHomeId(match.home_team_id?.toString() ?? ""); setAwayId(match.away_team_id?.toString() ?? ""); }} small>Cancelar</Btn>
+          )}
+          {hasTeams && !editTeams && (
+            <Btn variant="ghost" onClick={() => setEditTeams(true)} small>Reasignar equipos</Btn>
+          )}
+          {hasTeams && !isFinished && !editTeams && (
             <Btn onClick={saveResult} disabled={saving || homeGoals === "" || awayGoals === ""} small>
               {saving ? "..." : "Guardar resultado"}
             </Btn>
           )}
-          {hasTeams && isFinished && !editResult && (
+          {hasTeams && isFinished && !editResult && !editTeams && (
             <Btn variant="ghost" onClick={() => setEditResult(true)} small>Editar resultado</Btn>
           )}
           {editResult && (
@@ -370,6 +410,14 @@ function MatchCard({ match, teams, onUpdate }: { match: MatchWithTeams; teams: T
               </Btn>
               <Btn variant="ghost" onClick={() => setEditResult(false)} small>Cancelar</Btn>
             </>
+          )}
+          {editDate ? (
+            <>
+              <Btn onClick={saveDate} disabled={savingDate || !dateValue} small>{savingDate ? "..." : "Guardar fecha"}</Btn>
+              <Btn variant="ghost" onClick={() => { setEditDate(false); setDateValue(toDatetimeLocal(match.match_date)); }} small>Cancelar</Btn>
+            </>
+          ) : (
+            <Btn variant="ghost" onClick={() => setEditDate(true)} small>📅 Fecha</Btn>
           )}
         </div>
       </div>
@@ -407,6 +455,8 @@ function SyncPanel() {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncResult, setSyncResult] = useState<any>(null);
+  const [syncingBracket, setSyncingBracket] = useState(false);
+  const [bracketResult, setBracketResult] = useState<any>(null);
 
   const loadStatus = async () => {
     setLoading(true);
@@ -434,6 +484,20 @@ function SyncPanel() {
     setSyncing(false);
   };
 
+  const syncBracket = async () => {
+    setSyncingBracket(true);
+    setBracketResult(null);
+    try {
+      const res = await fetch("/api/admin/sync-bracket", { method: "POST" });
+      const data = await res.json();
+      setBracketResult(data);
+      await loadStatus();
+    } catch {
+      setBracketResult({ error: "Error al sincronizar cruces" });
+    }
+    setSyncingBracket(false);
+  };
+
   useEffect(() => { loadStatus(); }, []);
 
   const card = (bg: string, border: string) => ({
@@ -453,15 +517,42 @@ function SyncPanel() {
             Cron automático cada 5 min · Liga FIFA World Cup ID: 4429
           </p>
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
           <Btn variant="ghost" onClick={loadStatus} disabled={loading} small>
             {loading ? "Cargando..." : "↻ Actualizar"}
           </Btn>
+          <Btn variant="ghost" onClick={syncBracket} disabled={syncingBracket} small>
+            {syncingBracket ? "Asignando..." : "🔗 Sincronizar cruces"}
+          </Btn>
           <Btn onClick={forceSync} disabled={syncing} small>
-            {syncing ? "Sincronizando..." : "⚡ Sync ahora"}
+            {syncing ? "Sincronizando..." : "⚡ Sync resultados"}
           </Btn>
         </div>
       </div>
+
+      {/* Bracket sync feedback */}
+      {bracketResult && (
+        <div style={{
+          ...card(
+            bracketResult.error ? "rgba(239,68,68,0.08)" : bracketResult.assigned_count > 0 ? "rgba(34,197,94,0.08)" : "rgba(255,255,255,0.04)",
+            bracketResult.error ? "rgba(239,68,68,0.25)" : bracketResult.assigned_count > 0 ? "rgba(34,197,94,0.25)" : "rgba(255,255,255,0.1)"
+          ),
+        }}>
+          <p style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.88rem", color: bracketResult.error ? "#ef4444" : bracketResult.assigned_count > 0 ? "#22c55e" : "rgba(255,255,255,0.6)" }}>
+            {bracketResult.error ?? bracketResult.message}
+          </p>
+          {bracketResult.assigned?.length > 0 && (
+            <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              Cruces asignados: {bracketResult.assigned.map((a: any) => `#${a.match_number} ${a.home}-${a.away}`).join(", ")}
+            </p>
+          )}
+          {bracketResult.unmatched_count > 0 && (
+            <p style={{ fontSize: "0.72rem", color: "rgba(255,255,255,0.4)", marginTop: 4 }}>
+              Sin emparejar (resolver a mano): {bracketResult.unmatched_count} partido(s)
+            </p>
+          )}
+        </div>
+      )}
 
       {/* Sync result feedback */}
       {syncResult && (

@@ -1,65 +1,7 @@
 import { schedule } from "@netlify/functions";
 import { createClient } from "@supabase/supabase-js";
 import { calcPoints } from "../../lib/utils";
-
-const SPORTSDB_BASE = "https://www.thesportsdb.com/api/v1/json/123";
-const WC_LEAGUE_ID = "4429";
-
-// TheSportsDB team name → our FIFA code (from teams table)
-const NAME_TO_FIFA: Record<string, string> = {
-  "Mexico": "MEX",
-  "South Africa": "RSA",
-  "South Korea": "KOR",
-  "Czech Republic": "CZE",
-  "Canada": "CAN",
-  "Bosnia-Herzegovina": "BIH",
-  "USA": "USA",
-  "United States": "USA",
-  "Paraguay": "PAR",
-  "Brazil": "BRA",
-  "Morocco": "MAR",
-  "Qatar": "QAT",
-  "Switzerland": "SUI",
-  "Haiti": "HAI",
-  "Scotland": "SCO",
-  "Germany": "GER",
-  "Curaçao": "CUW",
-  "Curacao": "CUW",
-  "Ivory Coast": "CIV",
-  "Côte d'Ivoire": "CIV",
-  "Ecuador": "ECU",
-  "Netherlands": "NED",
-  "Japan": "JPN",
-  "Australia": "AUS",
-  "Turkey": "TUR",
-  "Belgium": "BEL",
-  "Egypt": "EGY",
-  "Saudi Arabia": "KSA",
-  "Uruguay": "URU",
-  "Spain": "ESP",
-  "Cape Verde": "CPV",
-  "Sweden": "SWE",
-  "Tunisia": "TUN",
-  "France": "FRA",
-  "Senegal": "SEN",
-  "Iraq": "IRQ",
-  "Norway": "NOR",
-  "Argentina": "ARG",
-  "Algeria": "ALG",
-  "Austria": "AUT",
-  "Jordan": "JOR",
-  "Portugal": "POR",
-  "DR Congo": "COD",
-  "Congo DR": "COD",
-  "Uzbekistan": "UZB",
-  "Colombia": "COL",
-  "England": "ENG",
-  "Croatia": "CRO",
-  "Ghana": "GHA",
-  "Panama": "PAN",
-  "New Zealand": "NZL",
-  "Iran": "IRN",
-};
+import { NAME_TO_FIFA, SPORTSDB_BASE, WC_LEAGUE_ID, assignBracketTeams } from "../../lib/sportsdb";
 
 async function fetchJSON(url: string): Promise<unknown> {
   const res = await fetch(url, { signal: AbortSignal.timeout(10000) });
@@ -84,6 +26,17 @@ export const handler = schedule("*/5 * * * *", async () => {
     { auth: { persistSession: false } }
   );
 
+  // Phase 0: fill in knockout matchups as TheSportsDB publishes each round.
+  // Runs before the score sync so newly-assigned matches become eligible for it.
+  let bracketAssigned = 0;
+  try {
+    const bracket = await assignBracketTeams(supabase);
+    bracketAssigned = bracket.assigned.length;
+    if (bracket.errors.length) console.error("[sync-results] bracket errors:", bracket.errors.join("; "));
+  } catch (e) {
+    console.error("[sync-results] bracket sync failed:", e instanceof Error ? e.message : String(e));
+  }
+
   const threeDaysAgo = new Date(Date.now() - 3 * 86400000).toISOString();
   const inOneHour = new Date(Date.now() + 3600000).toISOString();
 
@@ -100,7 +53,10 @@ export const handler = schedule("*/5 * * * *", async () => {
     .gte("match_date", threeDaysAgo)
     .lte("match_date", inOneHour);
 
-  if (!pending?.length) return { statusCode: 200, body: "No pending matches" };
+  if (!pending?.length) {
+    const body = bracketAssigned ? `Assigned ${bracketAssigned} bracket matchup(s). No pending matches` : "No pending matches";
+    return { statusCode: 200, body };
+  }
 
   // Fetch TheSportsDB events for each relevant date
   const dates = getRecentDates();
@@ -245,6 +201,7 @@ export const handler = schedule("*/5 * * * *", async () => {
   }
 
   const parts: string[] = [];
+  if (bracketAssigned) parts.push(`Assigned ${bracketAssigned} bracket matchup(s)`);
   if (updatedMatches.length) parts.push(`Updated ${updatedMatches.length} match(es): IDs ${updatedMatches.join(", ")}`);
   if (recalculated) parts.push(`Recalculated ${recalculated} prediction(s)`);
   const msg = parts.length ? parts.join(". ") : "No new results";
