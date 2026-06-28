@@ -286,6 +286,19 @@ const STAGES = [
 ];
 const GROUPS = "ABCDEFGHIJKL".split("");
 
+/* Fase "actual": la primera (en orden de torneo) que aún tiene partidos sin jugar.
+   Si todas están terminadas, la última con partidos. */
+function currentStageFromMatches(ms: MatchWithTeams[]): string {
+  for (const s of STAGES) {
+    const inStage = ms.filter((m) => m.stage === s.key);
+    if (inStage.length > 0 && inStage.some((m) => !m.is_finished)) return s.key;
+  }
+  for (let i = STAGES.length - 1; i >= 0; i--) {
+    if (ms.some((m) => m.stage === STAGES[i].key)) return STAGES[i].key;
+  }
+  return "group";
+}
+
 export default function DashboardPage() {
   const supabase = createClient();
   const router = useRouter();
@@ -299,6 +312,7 @@ export default function DashboardPage() {
   const [saveErrors, setSaveErrors] = useState<Record<number, string>>({});
   const [activeStage, setActiveStage] = useState("group");
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
+  const stageInitialized = useRef(false);
   const [localPredictions, setLocalPredictions] = useState<Record<number, { home: string; away: string }>>({});
   const [newsTeam, setNewsTeam] = useState<{ code: string; name: string } | null>(null);
   const [newsBannerDismissed, setNewsBannerDismissed] = useState(() => {
@@ -324,7 +338,14 @@ export default function DashboardPage() {
       .order("match_date", { ascending: true, nullsFirst: false })
       .order("match_number", { ascending: true });
 
-    if (matchesData) setMatches(matchesData as MatchWithTeams[]);
+    if (matchesData) {
+      setMatches(matchesData as MatchWithTeams[]);
+      // Por defecto, abrir en la fase actual (p.ej. 16avos cuando los grupos ya terminaron)
+      if (!stageInitialized.current) {
+        setActiveStage(currentStageFromMatches(matchesData as MatchWithTeams[]));
+        stageInitialized.current = true;
+      }
+    }
 
     if (user) {
       const [predsRes, tournPredRes] = await Promise.all([

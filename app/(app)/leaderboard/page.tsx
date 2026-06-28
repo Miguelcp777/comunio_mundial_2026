@@ -13,6 +13,16 @@ const RANK_COLORS = [
   { bg: "rgba(180,120,60,0.08)", border: "rgba(180,120,60,0.2)", text: "#cd7c3a", medal: "🥉" },
 ];
 
+// Paleta para las líneas de la gráfica de evolución
+const LINE_PALETTE = [
+  "#D4AF37", "#a855f7", "#22c55e", "#3b82f6", "#ef4444", "#ec4899",
+  "#f59e0b", "#14b8a6", "#8b5cf6", "#f97316", "#06b6d4", "#84cc16",
+  "#e11d48", "#64748b", "#eab308", "#10b981",
+];
+
+// Un punto de la línea temporal: posición y puntos de cada jugador tras una jornada
+type TimelinePoint = { label: string; date: string; ranks: Record<string, number>; points: Record<string, number> };
+
 type MatchBreakdown = {
   match_id: number;
   match_number: number;
@@ -82,6 +92,7 @@ export default function LeaderboardPage() {
   const [loading, setLoading] = useState(true);
   const [detail, setDetail] = useState<PointsDetail | null>(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [timeline, setTimeline] = useState<TimelinePoint[]>([]);
   const refetchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Carga perfiles + estadísticas de desempate y ordena con los 4 criterios
@@ -95,14 +106,69 @@ export default function LeaderboardPage() {
     setProfiles(sortByRanking(profRes.data ?? [], rankStats));
   }, [supabase]);
 
+  // Reconstruye la evolución de la clasificación: puntos acumulados (de partidos) y
+  // posición de cada jugador tras cada jornada con resultados. Derivado de los datos
+  // existentes — no se almacenan snapshots.
+  const loadTimeline = useCallback(async () => {
+    const [matchesRes, predsRes, profRes] = await Promise.all([
+      supabase.from("matches").select("id, match_date").eq("is_finished", true).not("match_date", "is", null).order("match_date", { ascending: true }),
+      supabase.from("match_predictions").select("user_id, match_id, points_earned").not("points_earned", "is", null),
+      supabase.from("profiles").select("id, display_name"),
+    ]);
+    const fmatches = (matchesRes.data ?? []) as { id: number; match_date: string }[];
+    const preds = (predsRes.data ?? []) as { user_id: string; match_id: number; points_earned: number }[];
+    const profs = (profRes.data ?? []) as { id: string; display_name: string }[];
+    if (!fmatches.length || !profs.length) { setTimeline([]); return; }
+
+    const predsByMatch = new Map<number, { user_id: string; pts: number }[]>();
+    for (const p of preds) {
+      if (p.points_earned == null) continue;
+      const arr = predsByMatch.get(p.match_id) ?? [];
+      arr.push({ user_id: p.user_id, pts: p.points_earned });
+      predsByMatch.set(p.match_id, arr);
+    }
+
+    const day = (iso: string) => new Date(iso).toLocaleDateString("sv-SE", { timeZone: "Europe/Madrid" });
+    const dayLabel = (iso: string) => new Date(iso).toLocaleDateString("es-ES", { day: "2-digit", month: "short", timeZone: "Europe/Madrid" });
+
+    // Partidos agrupados por día (en orden cronológico — fmatches viene ordenado)
+    const byDay = new Map<string, { ids: number[]; firstIso: string }>();
+    for (const m of fmatches) {
+      const d = day(m.match_date);
+      const entry = byDay.get(d) ?? { ids: [], firstIso: m.match_date };
+      entry.ids.push(m.id);
+      byDay.set(d, entry);
+    }
+
+    const cumulative: Record<string, number> = {};
+    for (const pr of profs) cumulative[pr.id] = 0;
+
+    const tl: TimelinePoint[] = [];
+    for (const [d, entry] of byDay) {
+      for (const mid of entry.ids) {
+        for (const pr of predsByMatch.get(mid) ?? []) {
+          cumulative[pr.user_id] = (cumulative[pr.user_id] ?? 0) + pr.pts;
+        }
+      }
+      const ordered = [...profs].sort((a, b) =>
+        (cumulative[b.id] ?? 0) - (cumulative[a.id] ?? 0) || a.display_name.localeCompare(b.display_name)
+      );
+      const ranks: Record<string, number> = {};
+      const points: Record<string, number> = {};
+      ordered.forEach((pr, i) => { ranks[pr.id] = i + 1; points[pr.id] = cumulative[pr.id] ?? 0; });
+      tl.push({ label: dayLabel(entry.firstIso), date: d, ranks, points });
+    }
+    setTimeline(tl);
+  }, [supabase]);
+
   useEffect(() => {
     (async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) setCurrentUserId(user.id);
-      await loadLeaderboard();
+      await Promise.all([loadLeaderboard(), loadTimeline()]);
       setLoading(false);
     })();
-  }, [loadLeaderboard]);
+  }, [loadLeaderboard, loadTimeline]);
 
   // Realtime: cuando cambian los puntos, refresca perfiles + desempates y re-ordena.
   // Debounce porque un sync actualiza varios perfiles seguidos (ráfaga de eventos).
@@ -114,7 +180,7 @@ export default function LeaderboardPage() {
         { event: "UPDATE", schema: "public", table: "profiles" },
         () => {
           if (refetchTimer.current) clearTimeout(refetchTimer.current);
-          refetchTimer.current = setTimeout(() => { loadLeaderboard(); }, 400);
+          refetchTimer.current = setTimeout(() => { loadLeaderboard(); loadTimeline(); }, 400);
         }
       )
       .subscribe();
@@ -123,7 +189,7 @@ export default function LeaderboardPage() {
       supabase.removeChannel(channel);
       if (refetchTimer.current) clearTimeout(refetchTimer.current);
     };
-  }, [supabase, loadLeaderboard]);
+  }, [supabase, loadLeaderboard, loadTimeline]);
 
   const openDetail = useCallback(async (profile: Profile) => {
     setLoadingDetail(true);
@@ -243,6 +309,9 @@ export default function LeaderboardPage() {
           </div>
         )}
 
+        {/* Evolución de la clasificación */}
+        <RankTimeline timeline={timeline} profiles={profiles} currentUserId={currentUserId} />
+
         {/* Full table */}
         <div style={{ background: "#0d1225", border: "1px solid rgba(255,255,255,0.07)", borderRadius: 16, overflow: "hidden" }}>
           <div style={{ display: "grid", gridTemplateColumns: "48px 1fr auto", padding: "10px 16px", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
@@ -331,6 +400,155 @@ export default function LeaderboardPage() {
         />
       )}
     </>
+  );
+}
+
+/* ── Gráfica de evolución de la clasificación (bump chart) ── */
+function RankTimeline({ timeline, profiles, currentUserId }: { timeline: TimelinePoint[]; profiles: Profile[]; currentUserId: string | null }) {
+  const [iso, setIso] = useState<string | null>(null); // jugador aislado al pulsar la leyenda
+  const [open, setOpen] = useState(true);
+
+  const cardStyle: React.CSSProperties = {
+    background: "#0d1225", border: "1px solid rgba(255,255,255,0.07)",
+    borderRadius: 16, overflow: "hidden", marginBottom: 24,
+  };
+  const header = (
+    <button onClick={() => setOpen(o => !o)} style={{
+      width: "100%", display: "flex", alignItems: "center", justifyContent: "space-between",
+      padding: "12px 16px", background: "transparent", border: "none", cursor: "pointer",
+    }}>
+      <span style={{ fontFamily: "var(--font-heading)", fontWeight: 800, fontSize: "0.9rem", color: "white", display: "flex", alignItems: "center", gap: 8 }}>
+        📈 Evolución de la clasificación
+      </span>
+      <span style={{ color: "rgba(255,255,255,0.4)", fontSize: "0.8rem" }}>{open ? "▲" : "▼"}</span>
+    </button>
+  );
+
+  if (timeline.length === 0) {
+    return (
+      <div style={cardStyle}>
+        {header}
+        {open && (
+          <div style={{ padding: "32px 24px", textAlign: "center", color: "rgba(255,255,255,0.25)", fontSize: "0.85rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+            Aún no hay resultados suficientes para mostrar la evolución.
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const colorOf = (id: string) => LINE_PALETTE[Math.max(0, profiles.findIndex(p => p.id === id)) % LINE_PALETTE.length];
+  const nameOf = (id: string) => profiles.find(p => p.id === id)?.display_name ?? "?";
+
+  // Layout del SVG
+  const n = timeline.length;
+  const rows = Math.max(profiles.length, 1);
+  const mL = 30, mR = 96, mT = 18, mB = 30;
+  const W = Math.max(560, mL + mR + (n - 1) * 46);
+  const H = mT + mB + Math.max(rows - 1, 1) * 30;
+  const innerW = W - mL - mR;
+  const innerH = H - mT - mB;
+  const x = (i: number) => (n > 1 ? mL + (i * innerW) / (n - 1) : mL + innerW / 2);
+  const y = (rank: number) => (rows > 1 ? mT + ((rank - 1) * innerH) / (rows - 1) : mT + innerH / 2);
+
+  const last = timeline[n - 1];
+  // jugadores ordenados por su posición final (para dibujar el líder al final encima)
+  const drawOrder = [...profiles].map(p => p.id).filter(id => last.ranks[id] != null);
+  const xLabelEvery = Math.ceil(n / 8);
+
+  const lineStyle = (id: string) => {
+    const isMe = id === currentUserId;
+    let opacity = isMe ? 1 : 0.85;
+    let width = isMe ? 3 : 1.8;
+    if (iso) { const on = id === iso; opacity = on ? 1 : 0.08; width = on ? 3.2 : 1.5; }
+    return { opacity, width };
+  };
+
+  return (
+    <div style={cardStyle}>
+      {header}
+      {open && (
+        <div style={{ borderTop: "1px solid rgba(255,255,255,0.05)", padding: "8px 8px 14px" }}>
+          <p style={{ fontSize: "0.7rem", color: "rgba(255,255,255,0.3)", padding: "4px 8px 8px" }}>
+            Posición tras cada jornada (1 = líder). Pulsa un nombre para resaltarlo.
+          </p>
+          <div style={{ overflowX: "auto", overflowY: "hidden" }}>
+            <svg viewBox={`0 0 ${W} ${H}`} width={W} height={H} style={{ display: "block", maxWidth: "none" }}>
+              {/* Gridlines + números de posición */}
+              {Array.from({ length: rows }, (_, r) => r + 1).map(r => (
+                <g key={`grid-${r}`}>
+                  <line x1={mL} y1={y(r)} x2={mL + innerW} y2={y(r)} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
+                  <text x={mL - 8} y={y(r) + 3} textAnchor="end" fontSize={9} fill="rgba(255,255,255,0.3)" fontWeight={700}>{r}</text>
+                </g>
+              ))}
+              {/* Etiquetas de fecha en el eje X */}
+              {timeline.map((tp, i) => (
+                (i % xLabelEvery === 0 || i === n - 1) ? (
+                  <text key={`xl-${i}`} x={x(i)} y={H - 10} textAnchor="middle" fontSize={8.5} fill="rgba(255,255,255,0.3)">{tp.label}</text>
+                ) : null
+              ))}
+              {/* Líneas de cada jugador */}
+              {drawOrder.map(id => {
+                const { opacity, width } = lineStyle(id);
+                const col = colorOf(id);
+                const d = timeline.map((tp, i) => `${i === 0 ? "M" : "L"} ${x(i).toFixed(1)} ${y(tp.ranks[id]).toFixed(1)}`).join(" ");
+                return (
+                  <path key={`ln-${id}`} d={d} fill="none" stroke={col} strokeWidth={width} strokeOpacity={opacity}
+                    strokeLinejoin="round" strokeLinecap="round" onClick={() => setIso(iso === id ? null : id)} style={{ cursor: "pointer" }} />
+                );
+              })}
+              {/* Puntos + tooltip nativo */}
+              {drawOrder.map(id => {
+                const { opacity } = lineStyle(id);
+                const col = colorOf(id);
+                const isMe = id === currentUserId;
+                return timeline.map((tp, i) => (
+                  <circle key={`dot-${id}-${i}`} cx={x(i)} cy={y(tp.ranks[id])} r={isMe ? 3 : 2.3}
+                    fill={col} fillOpacity={opacity} stroke="#0d1225" strokeWidth={0.8}>
+                    <title>{`${nameOf(id)} · #${tp.ranks[id]} · ${tp.points[id]} pts (${tp.label})`}</title>
+                  </circle>
+                ));
+              })}
+              {/* Nombre al final de cada línea */}
+              {drawOrder.map(id => {
+                const { opacity } = lineStyle(id);
+                const isMe = id === currentUserId;
+                const nm = nameOf(id);
+                return (
+                  <text key={`end-${id}`} x={mL + innerW + 6} y={y(last.ranks[id]) + 3} fontSize={9.5}
+                    fill={colorOf(id)} fillOpacity={opacity} fontWeight={isMe ? 900 : 700}>
+                    {nm.length > 11 ? nm.slice(0, 10) + "…" : nm}{isMe ? " (tú)" : ""}
+                  </text>
+                );
+              })}
+            </svg>
+          </div>
+
+          {/* Leyenda clicable */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, padding: "10px 8px 2px" }}>
+            {profiles.map((p, i) => {
+              const on = iso === p.id;
+              const isMe = p.id === currentUserId;
+              return (
+                <button key={p.id} onClick={() => setIso(on ? null : p.id)}
+                  style={{
+                    display: "flex", alignItems: "center", gap: 6, padding: "3px 9px", borderRadius: 16,
+                    border: `1px solid ${on ? colorOf(p.id) : "rgba(255,255,255,0.08)"}`,
+                    background: on ? "rgba(255,255,255,0.06)" : "transparent",
+                    cursor: "pointer", fontSize: "0.72rem",
+                    opacity: iso && !on ? 0.4 : 1,
+                  }}>
+                  <span style={{ width: 9, height: 9, borderRadius: "50%", background: colorOf(p.id), flexShrink: 0 }} />
+                  <span style={{ color: isMe ? "#D4AF37" : "rgba(255,255,255,0.7)", fontWeight: isMe ? 800 : 600 }}>
+                    {i + 1}. {p.display_name}{isMe ? " (tú)" : ""}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
