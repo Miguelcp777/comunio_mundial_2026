@@ -307,7 +307,7 @@ En producción (Netlify) estas vars deben estar configuradas en el dashboard. El
 
 ## Panel Admin — funcionalidades
 
-- **Tabs por stage**: Grupos / 32avos / Octavos / Cuartos / Semis / 3er Puesto / Final
+- **Tabs por stage**: Grupos / 16avos / Octavos / Cuartos / Semis / 3er Puesto / Final
 - **Filtro por grupo** (A–L) dentro de la fase de grupos
 - **Introducir resultado manual**: llama `/api/admin/save-result` (recalcula puntos automáticamente)
 - **Tab Sincronización API**: muestra estado del sync, equipos sin mapeo, fuerza sync manual

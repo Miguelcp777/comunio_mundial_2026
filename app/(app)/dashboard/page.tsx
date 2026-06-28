@@ -277,7 +277,7 @@ type MatchWithTeams = Match & { home_team: Team | null; away_team: Team | null; 
 
 const STAGES = [
   { key: "group",        label: "Grupos"     },
-  { key: "round_of_32",  label: "32avos"     },
+  { key: "round_of_32",  label: "16avos"     },
   { key: "round_of_16",  label: "Octavos"    },
   { key: "quarter_final",label: "Cuartos"    },
   { key: "semi_final",   label: "Semis"      },
